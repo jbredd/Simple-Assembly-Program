@@ -9,9 +9,8 @@
 import Foundation
 
 struct FullVM {
-    //runs the assembly binary code for the Doubles Program
     var instructionPointer: Int
-    let memory: [Int]
+    var memory: [Int]
     let size: Int
     let startAddress : Int
     var registers = Array(repeating: 0, count: 10)
@@ -103,8 +102,6 @@ struct FullVM {
         
         for _ in 1...stringLength {
             toReturn += String(support.unicodeValueToCharacter(memory[pointer]))
-            //print(support.unicodeValueToCharacter(memory[pointer]))
-            //print(pointer)
             pointer += 1
         }
         return toReturn
@@ -128,23 +125,35 @@ extension FullVM {
     func halt() {return} //0
     
     mutating func clrr(_ rIndex: Int) { //1
-        
+        registers[rIndex] = 0
+        instructionPointer += 2
     }
     
     mutating func clrx(_ rIndex: Int) { //2
-        
+        memory[registers[rIndex] + 2] = 0
+        instructionPointer += 2
     }
     
     mutating func clrm(_ labelAddress: Int) { //3
-        
+        memory[memory[labelAddress + 2] + 2] = 0
+        instructionPointer += 2
     }
     
     mutating func clrb(_ r1Index: Int, _ r2Index: Int) { //4
+        var startAddress = registers[r1Index]
+        let count = registers[r2Index]
+        startAddress += 2
         
+        for _ in 1...count {
+            memory[startAddress] = 0
+            startAddress += 1
+        }
+        instructionPointer += 3
     }
     
     mutating func movir(_ int: Int, _ rIndex: Int) { //5
-        
+        registers[rIndex] = int
+        instructionPointer += 3
     }
     
     mutating func movrr(_ r1Index: Int, _ r2Index: Int) { //6
@@ -153,7 +162,8 @@ extension FullVM {
     }
     
     mutating func movrm(_ rIndex: Int, _ labelAddress: Int) { //7
-        
+        memory[labelAddress + 2] = registers[rIndex]
+        instructionPointer += 3
     }
     
     mutating func movmr(_ labelAddress: Int, _ rIndex: Int) { //8
@@ -163,15 +173,17 @@ extension FullVM {
     }
     
     mutating func movxr(_ r1Index: Int, _ r2Index: Int) { //9
-        
+        registers[r2Index] = registers[r1Index]
+        instructionPointer += 3
     }
     
     mutating func movar(_ labelAddress: Int, _ rIndex: Int) { //10
-        
+        registers[rIndex] = labelAddress
     }
     
-    mutating func movb(_ r1Index: Int, _ r2Index: Int, _ r3Index: Int) { //11
+    mutating func movb(_ r1Index: Int, _ r2Index: Int, _ r3Index: Int) { //11 INCOMPLETE
         
+        instructionPointer += 4
     }
     
     mutating func addir(_ int: Int, _ rIndex: Int) { //12
@@ -185,83 +197,108 @@ extension FullVM {
     }
     
     mutating func addmr(_ labelAddress: Int, _ rIndex: Int) { //14
-        
+        registers[rIndex] += memory[labelAddress + 2]
+        instructionPointer += 3
     }
     
     mutating func addxr(_ r1Index: Int, _ r2Index: Int) { //15
-        
+        registers[r2Index] += memory[registers[r1Index] + 2]
+        instructionPointer += 3
     }
     
     mutating func subir(_ int: Int, _ rIndex: Int) { //16
-        
+        registers[rIndex] -= int
+        instructionPointer += 3
     }
     
     mutating func subrr(_ r1Index: Int, _ r2Index: Int) { //17
-        
+        registers[r2Index] -= registers[r1Index]
+        instructionPointer += 3
     }
     
     mutating func submr(_ labelAddress: Int, _ rIndex: Int) { //18
-        
+        registers[rIndex] -= memory[labelAddress + 2]
+        instructionPointer += 3
     }
     
     mutating func subxr(_ r1Index: Int, _ r2Index: Int) { //19
-        
+        registers[r2Index] *= memory[registers[r1Index] + 2]
+        instructionPointer += 3
     }
     
     mutating func mulir(_ int: Int, _ rIndex: Int) { //20
-        
+        registers[rIndex] *= int
+        instructionPointer += 3
     }
     
     mutating func mulrr(_ r1Index: Int, _ r2Index: Int) { //21
-        
+        registers[r2Index] *= registers[r1Index]
+        instructionPointer += 3
     }
     
     mutating func mulmr(_ labelAddress: Int, _ rIndex: Int) { //22
-        
+        registers[rIndex] *= memory[labelAddress + 2]
+        instructionPointer += 3
     }
     
     mutating func mulxr(_ r1Index: Int, _ r2Index: Int) { //23
-        
+        registers[r2Index] *= memory[registers[r1Index] + 2]
+        instructionPointer += 3
     }
     
     mutating func divir(_ int: Int, _ rIndex: Int) { //24
-        
+        registers[rIndex] /= int
+        instructionPointer += 3
     }
     
     mutating func divrr(_ r1Index: Int, _ r2Index: Int) { //25
-        
+        registers[r2Index] /= registers[r1Index]
+        instructionPointer += 3
     }
     
     mutating func divmr(_ labelAddress: Int, _ rIndex: Int) { //26
-        
+        registers[rIndex] /= memory[labelAddress + 2]
+        instructionPointer += 3
     }
     
     mutating func divxr(_ r1Index: Int, _ r2Index: Int) { //27
-        
+        registers[r2Index] /= memory[registers[r1Index] + 2]
+        instructionPointer += 3
     }
     
     mutating func jmp(_ labelAddress: Int) { //28
-        
+        instructionPointer = labelAddress + 2
     }
     
     mutating func sojz(_ rIndex: Int, _ labelAddress: Int) { //29
-        
+        registers[rIndex] -= 1
+        if registers[rIndex] == 0 {
+            jmp(labelAddress)
+        }
+        instructionPointer += 3
     }
     
     mutating func sojnz(_ rIndex: Int, _ labelAddress: Int) { //30
-        
+        registers[rIndex] -= 1
+        if registers[rIndex] != 0 {
+            jmp(labelAddress)
+        }
+        instructionPointer += 3
     }
     
     mutating func aojz(_ rIndex: Int, _ labelAddress: Int) { //31
         
+        instructionPointer += 3
     }
     
     mutating func aojnz(_ rIndex: Int, _ labelAddress: Int) { //32
         
+        instructionPointer += 3
     }
     
     mutating func cmpir(_ int: Int, _ rIndex: Int) { //33
         
+        instructionPointer += 3
     }
     
     mutating func cmprr(_ r1Index: Int, _ r2Index: Int) { //34
@@ -275,42 +312,52 @@ extension FullVM {
     
     mutating func cmpmr(_ labelAddress: Int, _ rIndex: Int) { //35
         
+        instructionPointer += 3
     }
     
     mutating func jmpn(_ labelAddress: Int) { //36
         
+        instructionPointer += 2
     }
     
     mutating func jmpz(_ labelAddress: Int) { //37
         
+        instructionPointer += 2
     }
     
     mutating func jmpp(_ labelAddress: Int) { //38
         
+        instructionPointer += 2
     }
     
     mutating func jsr(_ labelAddress: Int) { //39
         
+        //unconditional jump
     }
     
     mutating func ret() { //40
         
+        //unconditional jump
     }
     
     mutating func push(_ rIndex: Int) { //41
         
+        instructionPointer += 2
     }
     
     mutating func pop(_ rIndex: Int) { //42
         
+        instructionPointer += 2
     }
     
     mutating func stackc(_ rIndex: Int) { //43
         
+        instructionPointer += 2
     }
     
     mutating func outci(_ int: Int) { //44
         
+        instructionPointer += 2
     }
     
     mutating func outcr(_ rIndex: Int) { //45
@@ -320,14 +367,17 @@ extension FullVM {
     
     mutating func outcx(_ rIndex: Int) { //46
         
+        instructionPointer += 2
     }
     
     mutating func outcb(_ r1Index: Int, _ r2Index: Int) { //47
         
+        instructionPointer += 3
     }
     
     mutating func readi(_ r1Index: Int, _ r2Index: Int) { //48
         
+        instructionPointer += 3
     }
     
     mutating func printi(_ rIndex: Int) { //49
@@ -337,22 +387,27 @@ extension FullVM {
     
     mutating func readc(_ rIndex: Int) { //50
         
+        instructionPointer += 2
     }
     
     mutating func readln(_ labelAddress: Int, _ rIndex: Int) { //51
         
+        instructionPointer += 3
     }
     
     mutating func brk() { //52
         
+        instructionPointer += 1
     }
     
     mutating func movrx(_ r1Index: Int, _ r2Index: Int) { //53
         
+        instructionPointer += 3
     }
     
     mutating func movxx(_ r1Index: Int, _ r2Index: Int) { //54
         
+        instructionPointer += 3
     }
     
     mutating func outs(_ labelAddress: Int) { //55
@@ -363,6 +418,7 @@ extension FullVM {
     
     mutating func nop() { //56
         
+        instructionPointer += 1
     }
     
     mutating func jmpne(_ labelAddress: Int) { //57
