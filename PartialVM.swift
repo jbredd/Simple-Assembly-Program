@@ -118,6 +118,7 @@ extension PartialVM {
         print(fileContent)
         
         let binaryStrings = support.splitStringIntoLines(expression: fileContent)
+        binary = Array(repeating: 0, count: binaryStrings.count)
         for n in 0..<binaryStrings.count {
             if Int(binaryStrings[n]) != nil {
                 binary[n] = Int(binaryStrings[n])!
