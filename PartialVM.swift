@@ -32,50 +32,33 @@ struct PartialVM {
         while userInput != "quit" {
             var splitInput = support.splitStringIntoParts(expression: userInput)
             switch splitInput[0] {
-                /*
-                case "write":
-                    print("please type in the binary you would like to write, each element separated by a space:")
-                    userInput = readLine()!
-                    let data = userInput
-                    /*
-                    let path = splitInput[1]
-                    var dataArray = splitInput
-                    dataArray.removeFirst(); dataArray.removeFirst(); dataArray.removeFirst()
-                    var data = ""
-                    for d in dataArray {data += "\(d)\n"}
-                    data.removeLast()
-                    */
-                    
-                    print(support.writeTextFile(splitInput[1], data: data))
-                case "read": read(splitInput[1])*/
+                //for each case first the number of arguments is checked and then whether the type of the argument is as expected
+                case "read":
+                    if numArgs(splitInput) != 1 {print("The command 'read' takes in 1 argument, you put in \(numArgs(splitInput)). Please type again carefully\n"); break}
+                    read(splitInput[1])
                 case "run":
+                    if numArgs(splitInput) != 0 {print("The command 'run' takes in 0 arguments, you put in \(numArgs(splitInput)). Please type again carefully\n"); break};
                     executeBinary()
-                    if wasCrashed {print("...binary execution unsuccessful")}
-                    else {print("...binary execution successful")}
-                case "help": help()
-                case "quit": return
-                default: print("invalid input, please type again carefully")
+                    if wasCrashed {print("\n...Binary execution unsuccessful")}
+                    else {print("\n...Binary execution successful")}
+                case "help":
+                    if numArgs(splitInput) != 0 {print("The command 'help' takes in 0 arguments, you put in \(numArgs(splitInput)). Please type again carefully\n"); break}
+                    help()
+                case "quit":
+                    if numArgs(splitInput) != 0 {print("The command 'quit' takes in 0 arguments, you put in \(numArgs(splitInput)). Please type again carefully\n"); break}
+                    return
+                default: print("'\(userInput)' is an invalid command. Please type again carefully\n")
             }
             print(">", terminator: "")
             userInput = readLine()!
         }
     }
     
-    func help() {
-        var toReturn = "Partial Virtual Machine Help:"
-        toReturn += "\n    //write <path>"
-        toReturn += "\n    //<data> - write a file of binary"
-        toReturn += "\n    //read <path> - read file and write its binary to memory"
-        toReturn += "\n    run - execute the binary"
-        toReturn += "\n    help - print this help menu"
-        toReturn += "\n    quit - quit virtual machine"
-        print(toReturn)
-    }
-    
     mutating func executeBinary() {
-        while(true) {
+        instructionPointer = startAddress
+        while(pointerIsInMemoryBounds()) {
             switch memory[instructionPointer] {
-                case 0: return //ERROR: for some reason this case is not executing, executeBinary can't be exited
+                case 0: wasCrashed = false; return
                 case 6: movrr(memory[instructionPointer + 1], memory[instructionPointer + 2])
                 case 8: movmr(memory[instructionPointer + 1], memory[instructionPointer + 2])
                 case 12: addir(memory[instructionPointer + 1], memory[instructionPointer + 2])
@@ -85,11 +68,20 @@ struct PartialVM {
                 case 49: printi(memory[instructionPointer + 1])
                 case 55: outs(memory[instructionPointer + 1])
                 case 57: jmpne(memory[instructionPointer + 1])
-                default: print("nonexistent instruction called"); wasCrashed = true; return
+                default:
+                    print("Error: Nonexistent instruction called, instruction # \(memory[instructionPointer]) does not exist")
+                    wasCrashed = true; return
             }
         }
+        wasCrashed = true
+        print("Error: Index out of bounds, tried to access memory location \(instructionPointer)")
+        return
     }
-    
+}
+
+
+//extension for helpers
+extension PartialVM {
     func getString(_ labelAddress: Int)->String {
         var toReturn = ""
         let stringLength = memory[labelAddress]
@@ -100,19 +92,30 @@ struct PartialVM {
             pointer += 1
         }
         return toReturn
-    }
-}
-
-
-//extension for helpers
-extension PartialVM {
-    /*
-    mutating func write() {
-        
-    }
+    } //finds the string at a given memory address
+    
+    func pointerIsInMemoryBounds()-> Bool {
+        return (0 <= instructionPointer && instructionPointer < memory.count)
+    } //determines if the instructionPointer is pointing to an existing memory address
+   
+    func help() {
+        var toReturn = "Partial Virtual Machine Help:"
+        toReturn += "\n    read <path> - read file and write its binary to memory"
+        toReturn += "\n    run - execute the binary"
+        toReturn += "\n    help - print this help menu"
+        toReturn += "\n    quit - quit virtual machine"
+        print(toReturn)
+    } //prints help menu
     
     mutating func read(_ path: String) {
+        if support.readTextFile(path).fileText == nil {
+            print(support.readTextFile(path).message!)
+            return
+        }
+        print(support.readTextFile(path).fileText!)
+            
         let fileContent = support.readTextFile(path).fileText!
+        print(fileContent)
         let binaryStrings = support.splitStringIntoLines(expression: fileContent)
         var binary = [Int]()
         for s in binaryStrings {
@@ -128,8 +131,10 @@ extension PartialVM {
         }
         print("...reading binary file complete")
     }
-    */
     
+    func numArgs(_ args: [String])-> Int {
+        return args.count - 1
+    }
 }
 
 
@@ -166,12 +171,12 @@ extension PartialVM {
     }
     
     mutating func cmprr(_ r1Index: Int, _ r2Index: Int) { //34
+        instructionPointer += 3
         let r1Int = registers[r1Index]
         let r2Int = registers[r2Index]
         if r1Int == r2Int {statusFlag.makeEqual(); return}
         if r1Int > r2Int {statusFlag.makeMoreThan(); return}
         statusFlag.makeLessThan()
-        instructionPointer += 3
     }
     
     mutating func outcr(_ rIndex: Int) { //45
