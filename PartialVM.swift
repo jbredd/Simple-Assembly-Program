@@ -114,16 +114,14 @@ extension PartialVM {
             print(support.readTextFile(path).message!)
             return
         }
-        print(support.readTextFile(path).fileText!)
-            
         let fileContent = support.readTextFile(path).fileText!
         print(fileContent)
+        
         let binaryStrings = support.splitStringIntoLines(expression: fileContent)
-        var binary = [Int]()
-        for s in binaryStrings {
-            if Int(s) != nil {
-                binary.append(Int(s)!)
-            } else {print("...file contained nonbinary elements, cannot be read to memory")}
+        for n in 0..<binaryStrings.count {
+            if Int(binaryStrings[n]) != nil {
+                binary[n] = Int(binaryStrings[n])!
+            } else {print("...file contained nonbinary elements, cannot be read to memory"); return}
         }
         size = binary[0]
         startAddress = binary[1]
