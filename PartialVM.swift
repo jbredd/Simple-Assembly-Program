@@ -15,6 +15,8 @@ struct PartialVM {
     var wasCrashed = false
     
     
+    init() {}
+    /*
     init(binary: [Int]) {
         size = binary[0]
         startAddress = binary[1]
@@ -22,7 +24,7 @@ struct PartialVM {
         for n in 2..<binary.count { //binary[0] and binary[1] not part of memory
             memory[n - 2] = binary[n]
         }
-    }
+    }*/
     
     mutating func run() {
         print("Welcome to the binary to ouput virtual machine!")
