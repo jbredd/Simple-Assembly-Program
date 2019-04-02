@@ -1,35 +1,81 @@
-//
-//  VM.swift
-//  Simple Assembly Program
-//
-//  Created by Joshua Shen on 3/26/19.
-//  Copyright © 2019 Joshua Shen. All rights reserved.
-//
-
 import Foundation
 
 struct PartialVM {
     //runs the assembly binary code for the Doubles Program
-    var instructionPointer: Int
-    let memory: [Int]
-    let size: Int
-    let startAddress : Int
+    var instructionPointer = 0
+    var memory = Array(repeating: 0, count: 10000)
+    var binary = [0]
+    var size = 0
+    var startAddress = 0
     var registers = Array(repeating: 0, count: 10)
-    let support = Support()
     var statusFlag = StatusFlag()
     
-    init(mem: [Int]) {
-        memory = mem
-        size = mem[0]
-        startAddress = mem[1]
-        instructionPointer = startAddress + 2 //the plus 2 is because memory actually starts
-        //from memory[2] as opposed to memory[0] due to length and startAddress taking 2 spaces
+    let support = Support()
+    var userInput = ""
+    var wasCrashed = false
+    
+    
+    init(binary: [Int]) {
+        size = binary[0]
+        startAddress = binary[1]
+        instructionPointer = startAddress
+        for n in 2..<binary.count { //binary[0] and binary[1] not part of memory
+            memory[n - 2] = binary[n]
+        }
     }
     
     mutating func run() {
+        print("Welcome to the binary to ouput virtual machine!")
+        help()
+        print(">", terminator: "")
+        userInput = readLine()!
+        while userInput != "quit" {
+            var splitInput = support.splitStringIntoParts(expression: userInput)
+            switch splitInput[0] {
+                /*
+                case "write":
+                    print("please type in the binary you would like to write, each element separated by a space:")
+                    userInput = readLine()!
+                    let data = userInput
+                    /*
+                    let path = splitInput[1]
+                    var dataArray = splitInput
+                    dataArray.removeFirst(); dataArray.removeFirst(); dataArray.removeFirst()
+                    var data = ""
+                    for d in dataArray {data += "\(d)\n"}
+                    data.removeLast()
+                    */
+                    
+                    print(support.writeTextFile(splitInput[1], data: data))
+                case "read": read(splitInput[1])*/
+                case "run":
+                    executeBinary()
+                    if wasCrashed {print("...binary execution unsuccessful")}
+                    else {print("...binary execution successful")}
+                case "help": help()
+                case "quit": return
+                default: print("invalid input, please type again carefully")
+            }
+            print(">", terminator: "")
+            userInput = readLine()!
+        }
+    }
+    
+    func help() {
+        var toReturn = "Partial Virtual Machine Help:"
+        toReturn += "\n    //write <path>"
+        toReturn += "\n    //<data> - write a file of binary"
+        toReturn += "\n    //read <path> - read file and write its binary to memory"
+        toReturn += "\n    run - execute the binary"
+        toReturn += "\n    help - print this help menu"
+        toReturn += "\n    quit - quit virtual machine"
+        print(toReturn)
+    }
+    
+    mutating func executeBinary() {
         while(true) {
             switch memory[instructionPointer] {
-                case 0: return
+                case 0: return //ERROR: for some reason this case is not executing, executeBinary can't be exited
                 case 6: movrr(memory[instructionPointer + 1], memory[instructionPointer + 2])
                 case 8: movmr(memory[instructionPointer + 1], memory[instructionPointer + 2])
                 case 12: addir(memory[instructionPointer + 1], memory[instructionPointer + 2])
@@ -39,10 +85,9 @@ struct PartialVM {
                 case 49: printi(memory[instructionPointer + 1])
                 case 55: outs(memory[instructionPointer + 1])
                 case 57: jmpne(memory[instructionPointer + 1])
-                default: print("invalid")
+                default: print("nonexistent instruction called"); wasCrashed = true; return
             }
         }
-        print("...Run Finished")
     }
     
     func getString(_ labelAddress: Int)->String {
@@ -52,8 +97,6 @@ struct PartialVM {
         
         for _ in 1...stringLength {
             toReturn += String(support.unicodeValueToCharacter(memory[pointer]))
-            //print(support.unicodeValueToCharacter(memory[pointer]))
-            //print(pointer)
             pointer += 1
         }
         return toReturn
@@ -61,14 +104,39 @@ struct PartialVM {
 }
 
 
+//extension for helpers
+extension PartialVM {
+    /*
+    mutating func write() {
+        
+    }
+    
+    mutating func read(_ path: String) {
+        let fileContent = support.readTextFile(path).fileText!
+        let binaryStrings = support.splitStringIntoLines(expression: fileContent)
+        var binary = [Int]()
+        for s in binaryStrings {
+            if Int(s) != nil {
+                binary.append(Int(s)!)
+            } else {print("...file contained nonbinary elements, cannot be read to memory")}
+        }
+        size = binary[0]
+        startAddress = binary[1]
+        instructionPointer = startAddress
+        for n in 2..<binary.count { //binary[0] and binary[1] not part of memory
+            memory[n - 2] = binary[n]
+        }
+        print("...reading binary file complete")
+    }
+    */
+    
+}
+
+
 //extension for executing instructions
 extension PartialVM {
     /*
      IMPORTANT NOTES:
-        any time that a label address is taken in as a parameter it needs to
-        have 2 added it to access the desired memory location since length and
-        start address hold the 2 first positions in the memory array
-     
         print statements have the "terminator: String" parameter since swift
         automatically makes the terminator "\n" if not called and we do not want
         to skip any lines when printing except for when outcr-ing #10
@@ -82,7 +150,7 @@ extension PartialVM {
     }
     
     mutating func movmr(_ labelAddress: Int, _ rIndex: Int) { //8
-        let labelValue = memory[labelAddress + 2]
+        let labelValue = memory[labelAddress]
         registers[rIndex] = labelValue
         instructionPointer += 3
     }
@@ -117,30 +185,16 @@ extension PartialVM {
     }
     
     mutating func outs(_ labelAddress: Int) { //55
-        let toPrint = getString(labelAddress + 2)
+        let toPrint = getString(labelAddress)
         print(toPrint, terminator: "")
         instructionPointer += 2
     }
     
     mutating func jmpne(_ labelAddress: Int) { //57
         if statusFlag.status != 0 {
-            instructionPointer = labelAddress + 2
+            instructionPointer = labelAddress
         } else {
             instructionPointer += 2
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
