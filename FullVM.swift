@@ -1,9 +1,9 @@
 //
 //  FullVM.swift
-//  Simple Assembly Program
+//  PartialVM
 //
-//  Created by Joshua Shen on 3/31/19.
-//  Copyright © 2019 Joshua Shen. All rights reserved.
+//  Created by Nicholas Hatzis-Schoch on 4/6/19.
+//  Copyright © 2019 Slick Games. All rights reserved.
 //
 
 import Foundation
@@ -31,65 +31,65 @@ struct FullVM {
     mutating func run() {
         while(true) {
             switch memory[instructionPointer] {
-                case 0: return //halt
-                case 1: clrr(memory[instructionPointer + 1])
-                case 2: clrx(memory[instructionPointer + 1])
-                case 3: clrm(memory[instructionPointer + 1])
-                case 4: clrb(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 5: movir(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 6: movrr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 7: movrm(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 8: movmr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 9: movxr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 10: movar(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 11: movb(memory[instructionPointer + 1], memory[instructionPointer + 2], memory[instructionPointer + 3])
-                case 12: addir(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 13: addrr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 14: addmr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 15: addxr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 16: subir(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 17: subrr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 18: submr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 19: subxr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 20: mulir(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 21: mulrr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 22: mulmr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 23: mulxr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 24: divir(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 25: divrr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 26: divmr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 27: divxr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 28: jmp(memory[instructionPointer + 1])
-                case 29: sojz(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 30: sojnz(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 31: aojz(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 32: aojnz(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 33: cmpir(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 34: cmprr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 35: cmpmr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 36: jmpn(memory[instructionPointer + 1])
-                case 37: jmpz(memory[instructionPointer + 1])
-                case 38: jmpp(memory[instructionPointer + 1])
-                case 39: jsr(memory[instructionPointer + 1])
-                case 40: ret()
-                case 41: push(memory[instructionPointer + 1])
-                case 42: pop(memory[instructionPointer + 1])
-                case 43: stackc(memory[instructionPointer + 1])
-                case 44: outci(memory[instructionPointer + 1])
-                case 45: outcr(memory[instructionPointer + 1])
-                case 46: outcx(memory[instructionPointer + 1])
-                case 47: outcb(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 48: readi(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 49: printi(memory[instructionPointer + 1])
-                case 50: readc(memory[instructionPointer + 1])
-                case 51: readln(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 52: brk()
-                case 53: movrx(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 54: movxx(memory[instructionPointer + 1], memory[instructionPointer + 2])
-                case 55: outs(memory[instructionPointer + 1])
-                case 56: nop()
-                case 57: jmpne(memory[instructionPointer + 1])
-                default: print("invalid instruction")
+            case 0: return //halt
+            case 1: clrr(memory[instructionPointer + 1])
+            case 2: clrx(memory[instructionPointer + 1])
+            case 3: clrm(memory[instructionPointer + 1])
+            case 4: clrb(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 5: movir(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 6: movrr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 7: movrm(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 8: movmr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 9: movxr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 10: movar(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 11: movb(memory[instructionPointer + 1], memory[instructionPointer + 2], memory[instructionPointer + 3])
+            case 12: addir(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 13: addrr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 14: addmr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 15: addxr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 16: subir(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 17: subrr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 18: submr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 19: subxr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 20: mulir(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 21: mulrr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 22: mulmr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 23: mulxr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 24: divir(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 25: divrr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 26: divmr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 27: divxr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 28: jmp(memory[instructionPointer + 1])
+            case 29: sojz(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 30: sojnz(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 31: aojz(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 32: aojnz(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 33: cmpir(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 34: cmprr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 35: cmpmr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 36: jmpn(memory[instructionPointer + 1])
+            case 37: jmpz(memory[instructionPointer + 1])
+            case 38: jmpp(memory[instructionPointer + 1])
+            case 39: jsr(memory[instructionPointer + 1])
+            case 40: ret()
+            case 41: push(memory[instructionPointer + 1])
+            case 42: pop(memory[instructionPointer + 1])
+            case 43: stackc(memory[instructionPointer + 1])
+            case 44: outci(memory[instructionPointer + 1])
+            case 45: outcr(memory[instructionPointer + 1])
+            case 46: outcx(memory[instructionPointer + 1])
+            case 47: outcb(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 48: readi(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 49: printi(memory[instructionPointer + 1])
+            case 50: readc(memory[instructionPointer + 1])
+            case 51: readln(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 52: brk()
+            case 53: movrx(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 54: movxx(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 55: outs(memory[instructionPointer + 1])
+            case 56: nop()
+            case 57: jmpne(memory[instructionPointer + 1])
+            default: print("invalid instruction")
             }
         }
         print("...Run Finished")
@@ -311,52 +311,61 @@ extension FullVM {
     }
     
     mutating func cmpmr(_ labelAddress: Int, _ rIndex: Int) { //35
-        
+        let rIndex = registers[rIndex]
+        if rIndex == memory[labelAddress] {statusFlag.makeEqual(); return}
+        if rIndex > memory[labelAddress] {statusFlag.makeMoreThan(); return}
+        statusFlag.makeLessThan()
         instructionPointer += 3
     }
     
     mutating func jmpn(_ labelAddress: Int) { //36
-        
-        instructionPointer += 2
+        if statusFlag.status == -1{
+            instructionPointer = labelAddress
+        }
+        else{instructionPointer += 2}
     }
     
     mutating func jmpz(_ labelAddress: Int) { //37
-        
-        instructionPointer += 2
+        if statusFlag.status == 0{
+            instructionPointer = labelAddress
+        }
+        else{instructionPointer += 2}
     }
     
     mutating func jmpp(_ labelAddress: Int) { //38
-        
-        instructionPointer += 2
+        if statusFlag.status == 1{
+            instructionPointer = labelAddress
+        }
+        else{instructionPointer += 2}
     }
     
     mutating func jsr(_ labelAddress: Int) { //39
-        
+        instructionPointer = labelAddress
         //unconditional jump
     }
     
     mutating func ret() { //40
-        
+        //not sure how to implement
         //unconditional jump
     }
     
     mutating func push(_ rIndex: Int) { //41
-        
+        //not sure how to implement
         instructionPointer += 2
     }
     
     mutating func pop(_ rIndex: Int) { //42
-        
+        //not sure how to implement
         instructionPointer += 2
     }
     
     mutating func stackc(_ rIndex: Int) { //43
-        
+        //not sure how to implement
         instructionPointer += 2
     }
     
     mutating func outci(_ int: Int) { //44
-        
+        print(int, terminator: "")
         instructionPointer += 2
     }
     
@@ -366,17 +375,19 @@ extension FullVM {
     }
     
     mutating func outcx(_ rIndex: Int) { //46
-        
+        print(support.unicodeValueToCharacter(memory[registers[rIndex]]), terminator: "")
         instructionPointer += 2
     }
     
     mutating func outcb(_ r1Index: Int, _ r2Index: Int) { //47
-        
+        let char = support.unicodeValueToCharacter(registers[r1Index])
+        let count = registers[r2Index]
+        for _ in 1...count{print(char)}
         instructionPointer += 3
     }
     
     mutating func readi(_ r1Index: Int, _ r2Index: Int) { //48
-        
+        //not sure how to implement - I believe we may need to implement something to store console outputs
         instructionPointer += 3
     }
     
@@ -386,27 +397,27 @@ extension FullVM {
     }
     
     mutating func readc(_ rIndex: Int) { //50
-        
+        //not sure how to implement - I believe we may need to implement something to store console outputs
         instructionPointer += 2
     }
     
     mutating func readln(_ labelAddress: Int, _ rIndex: Int) { //51
-        
+        //not sure how to implement - I believe we may need to implement something to store console outputs
         instructionPointer += 3
     }
     
     mutating func brk() { //52
-        
+        //not sure how to implement
         instructionPointer += 1
     }
     
     mutating func movrx(_ r1Index: Int, _ r2Index: Int) { //53
-        
+        memory[registers[r2Index]] = registers[r1Index]
         instructionPointer += 3
     }
     
     mutating func movxx(_ r1Index: Int, _ r2Index: Int) { //54
-        
+        memory[registers[r2Index]] = memory[registers[r1Index]]
         instructionPointer += 3
     }
     
@@ -417,7 +428,6 @@ extension FullVM {
     }
     
     mutating func nop() { //56
-        
         instructionPointer += 1
     }
     
@@ -429,7 +439,6 @@ extension FullVM {
         }
     }
 }
-
 
 
 
