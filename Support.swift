@@ -1,9 +1,9 @@
 //
 //  Support.swift
-//  Simple Assembly Program
+//  PartialVM
 //
-//  Created by Joshua Shen on 3/26/19.
-//  Copyright © 2019 Joshua Shen. All rights reserved.
+//  Created by Nicholas Hatzis-Schoch on 4/3/19.
+//  Copyright © 2019 Slick Games. All rights reserved.
 //
 
 import Foundation
@@ -18,11 +18,11 @@ public struct Support {
         return Character(UnicodeScalar(n)!)
     }
     
-    func splitStringIntoParts(expression: String)-> [String] {
+    func splitStringIntoParts(_ expression: String)-> [String] {
         return expression.characters.split{$0 == " "}.map{ String($0) }
     }
     
-    func splitStringIntoLines(expression: String)-> [String] {
+    func splitStringIntoLines(_ expression: String)-> [String] {
         return expression.characters.split{$0 == "\n"}.map{ String($0) }
     }
     
@@ -80,5 +80,3 @@ public struct Support {
         return addon + result
     }
 }
-
-
