@@ -19,6 +19,7 @@ struct FullVM {
     
     //unsure about the mechanics of this one:
     var stackRegister = 0
+    var console: String = ""
     
     init(mem: [Int]) {
         memory = mem
@@ -366,28 +367,31 @@ extension FullVM {
     
     mutating func outci(_ int: Int) { //44
         print(int, terminator: "")
+        console += String(int)
         instructionPointer += 2
     }
     
     mutating func outcr(_ rIndex: Int) { //45
         print(support.unicodeValueToCharacter(registers[rIndex]), terminator: "")
+        console += String(support.unicodeValueToCharacter(registers[rIndex]))
         instructionPointer += 2
     }
     
     mutating func outcx(_ rIndex: Int) { //46
         print(support.unicodeValueToCharacter(memory[registers[rIndex]]), terminator: "")
+        console += String(support.unicodeValueToCharacter(memory[registers[rIndex]]))
         instructionPointer += 2
     }
     
     mutating func outcb(_ r1Index: Int, _ r2Index: Int) { //47
         let char = support.unicodeValueToCharacter(registers[r1Index])
         let count = registers[r2Index]
-        for _ in 1...count{print(char)}
+        for _ in 1...count{print(char, terminator: ""); console += String(char)}
         instructionPointer += 3
     }
     
     mutating func readi(_ r1Index: Int, _ r2Index: Int) { //48
-        //not sure how to implement - I believe we may need to implement something to store console outputs
+        //not sure how to implement - I believe we may need to implement something to store console outputs. Also how does the error code work?
         instructionPointer += 3
     }
     
@@ -403,6 +407,17 @@ extension FullVM {
     
     mutating func readln(_ labelAddress: Int, _ rIndex: Int) { //51
         //not sure how to implement - I believe we may need to implement something to store console outputs
+        var charactersUni = [Int]()
+        let consoleLines = support.splitStringIntoLines(console)
+        let ln = consoleLines[0]
+        var i = 1
+        for c in ln {charactersUni.append(support.characterToUnicodeValue(c))}
+        memory[labelAddress] = ln.count
+        while (i - 1) != ln.count{
+            memory[labelAddress + i] = charactersUni[i - 1]
+            i += 1
+        }
+        registers[rIndex] = ln.count
         instructionPointer += 3
     }
     
@@ -438,6 +453,7 @@ extension FullVM {
             instructionPointer += 2
         }
     }
+}
 }
 
 
