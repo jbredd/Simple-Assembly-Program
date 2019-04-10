@@ -1,3 +1,10 @@
+//
+//  FullVM.swift
+//  Simple Assembly Program
+//
+//  Created by Joshua Shen on 3/26/19.
+//  Copyright © 2019 Joshua Shen. All rights reserved.
+//
 import Foundation
 
 struct FullVM {
@@ -10,22 +17,20 @@ struct FullVM {
     var registers = Array(repeating: 0, count: 10)
     var statusFlag = StatusFlag()
     
+    var stack = Stack<Int>(size: 200)
     let support = Support()
     var userInput = ""
     var wasCrashed = false
     
-    var stackRegister = 0
+    var stackRegister: Int {
+        if stack.isEmpty() {return 2}
+        if stack.isFull() {return 1}
+        return 0
+    }
     var console: String = ""
+    var retTo = 0
     
-    /*
-    init(binary: [Int]) {
-        size = binary[0]
-        startAddress = binary[1]
-        instructionPointer = startAddress
-        for n in 2..<binary.count { //binary[0] and binary[1] not part of memory
-            memory[n - 2] = binary[n]
-        }
-    }*/
+
     init() {}
     
     mutating func run() {
@@ -61,16 +66,65 @@ struct FullVM {
     mutating func executeBinary() {
         instructionPointer = startAddress
         while(pointerIsInMemoryBounds()) {
+            if wasCrashed == true {return}
             switch memory[instructionPointer] {
-            case 0: wasCrashed = false; return
+            case 0: wasCrashed = false; return //halt
+            case 1: clrr(memory[instructionPointer + 1])
+            case 2: clrx(memory[instructionPointer + 1])
+            case 3: clrm(memory[instructionPointer + 1])
+            case 4: clrb(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 5: movir(memory[instructionPointer + 1], memory[instructionPointer + 2])
             case 6: movrr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 7: movrm(memory[instructionPointer + 1], memory[instructionPointer + 2])
             case 8: movmr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 9: movxr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 10: movar(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 11: movb(memory[instructionPointer + 1], memory[instructionPointer + 2], memory[instructionPointer + 3])
             case 12: addir(memory[instructionPointer + 1], memory[instructionPointer + 2])
             case 13: addrr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 14: addmr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 15: addxr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 16: subir(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 17: subrr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 18: submr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 19: subxr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 20: mulir(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 21: mulrr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 22: mulmr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 23: mulxr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 24: divir(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 25: divrr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 26: divmr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 27: divxr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 28: jmp(memory[instructionPointer + 1])
+            case 29: sojz(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 30: sojnz(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 31: aojz(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 32: aojnz(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 33: cmpir(memory[instructionPointer + 1], memory[instructionPointer + 2])
             case 34: cmprr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 35: cmpmr(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 36: jmpn(memory[instructionPointer + 1])
+            case 37: jmpz(memory[instructionPointer + 1])
+            case 38: jmpp(memory[instructionPointer + 1])
+            case 39: jsr(memory[instructionPointer + 1])
+            case 40: ret()
+            case 41: push(memory[instructionPointer + 1])
+            case 42: pop(memory[instructionPointer + 1])
+            case 43: stackc(memory[instructionPointer + 1])
+            case 44: outci(memory[instructionPointer + 1])
             case 45: outcr(memory[instructionPointer + 1])
+            case 46: outcx(memory[instructionPointer + 1])
+            case 47: outcb(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 48: readi(memory[instructionPointer + 1], memory[instructionPointer + 2])
             case 49: printi(memory[instructionPointer + 1])
+            case 50: readc(memory[instructionPointer + 1])
+            case 51: readln(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 52: brk()
+            case 53: movrx(memory[instructionPointer + 1], memory[instructionPointer + 2])
+            case 54: movxx(memory[instructionPointer + 1], memory[instructionPointer + 2])
             case 55: outs(memory[instructionPointer + 1])
+            case 56: nop()
             case 57: jmpne(memory[instructionPointer + 1])
             default:
                 print("Error: Nonexistent instruction called, instruction # \(memory[instructionPointer]) does not exist")
@@ -137,6 +191,23 @@ extension FullVM {
     
     func numArgs(_ args: [String])-> Int {
         return args.count - 1
+    }
+    
+    mutating func pushr5to9() {
+        for n in 5...9 {
+            stack.push(registers[n])
+        } //r5 pushed first, r9 last
+    }
+    //therefore r9 should be popped first, r5 last
+    mutating func popr5to9() {
+        for n in 9...5 {
+            var popped = stack.pop()
+            if popped == nil {
+                wasCrashed = true
+                return
+            }
+            registers[n] = popped!
+        }
     }
 }
 
@@ -210,8 +281,14 @@ extension FullVM {
         instructionPointer += 3
     }
     
-    mutating func movb(_ r1Index: Int, _ r2Index: Int, _ r3Index: Int) { //11 INCOMPLETE
+    mutating func movb(_ r1Index: Int, _ r2Index: Int, _ r3Index: Int) { //11
+        let source = registers[r1Index]
+        let destination = registers[r2Index]
+        let count = registers[r3Index]
         
+        for n in 0..<count {
+            memory[destination + n] = memory[source + n]
+        }
         instructionPointer += 4
     }
     
@@ -296,7 +373,7 @@ extension FullVM {
     }
     
     mutating func jmp(_ labelAddress: Int) { //28
-        instructionPointer = labelAddress + 2
+        instructionPointer = labelAddress
     }
     
     mutating func sojz(_ rIndex: Int, _ labelAddress: Int) { //29
@@ -316,18 +393,27 @@ extension FullVM {
     }
     
     mutating func aojz(_ rIndex: Int, _ labelAddress: Int) { //31
-        
+        registers[rIndex] += 1
+        if registers[rIndex] == 0 {
+            jmp(labelAddress)
+        }
         instructionPointer += 3
     }
     
     mutating func aojnz(_ rIndex: Int, _ labelAddress: Int) { //32
-        
+        registers[rIndex] += 1
+        if registers[rIndex] != 0 {
+            jmp(labelAddress)
+        }
         instructionPointer += 3
     }
     
     mutating func cmpir(_ int: Int, _ rIndex: Int) { //33
         instructionPointer += 3
-        
+        let rInt = registers[rIndex]
+        if int == rInt {statusFlag.makeEqual(); return}
+        if int > rInt {statusFlag.makeMoreThan(); return}
+        statusFlag.makeLessThan()
     }
     
     mutating func cmprr(_ r1Index: Int, _ r2Index: Int) { //34
@@ -342,8 +428,8 @@ extension FullVM {
     mutating func cmpmr(_ labelAddress: Int, _ rIndex: Int) { //35
         instructionPointer += 3
         let rIndex = registers[rIndex]
-        if rIndex == memory[labelAddress] {statusFlag.makeEqual(); return}
-        if rIndex > memory[labelAddress] {statusFlag.makeMoreThan(); return}
+        if memory[labelAddress] == rIndex {statusFlag.makeEqual(); return}
+        if memory[labelAddress] > rIndex {statusFlag.makeMoreThan(); return}
         statusFlag.makeLessThan()
     }
     
@@ -369,27 +455,33 @@ extension FullVM {
     }
     
     mutating func jsr(_ labelAddress: Int) { //39
-        instructionPointer = labelAddress
+        pushr5to9()
+        retTo = instructionPointer + 2
+        //i'm not sure how else this would work since you need to know what memory address to go back to after coming back from a subroutine
+        jmp(labelAddress)
         //unconditional jump
     }
     
     mutating func ret() { //40
-        //not sure how to implement
+        popr5to9()
+        jmp(retTo)
         //unconditional jump
     }
     
     mutating func push(_ rIndex: Int) { //41
-        //not sure how to implement
+        stack.push(registers[rIndex])
         instructionPointer += 2
     }
-    
+    //***IMPORTANT*** idk how assembly push and pop are actually used since it would screw with the whole preserving r5 to r9. in order for it not to, i would have to keep pointers in the stack to where each r5 to r9 is and the specs never call for such pointers so i'm assuming that these two instructions would not be used unless the stack does not have any sr saves or they dont care about preserving r5 to r9
     mutating func pop(_ rIndex: Int) { //42
-        //not sure how to implement
+        let popped = stack.pop()
+        if popped == nil {wasCrashed = true; return}
+        registers[rIndex] = stack.pop()!
         instructionPointer += 2
     }
     
     mutating func stackc(_ rIndex: Int) { //43
-        //not sure how to implement
+        registers[rIndex] = stackRegister
         instructionPointer += 2
     }
     
