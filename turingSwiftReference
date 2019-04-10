@@ -1,0 +1,169 @@
+
+class TuringVM {
+    var ttuplesArray: [TTuple]
+    var tapeAsString = " "
+    var numSteps = 0
+    var key = [String: TTuple]()
+    
+    init(ttuplesArray: [TTuple]) {
+        self.ttuplesArray = ttuplesArray
+        for t in ttuplesArray {
+            let csic = "\(t.currentState) \(t.inputChar)"
+            key[csic] = t
+        }
+    }
+    
+    func nakedTupleReport()-> String {
+        var result = "cs ic ns oc di"
+        for t in ttuplesArray {
+            result += "\n\(t.nakedTuple())"
+        }
+        return result
+    }
+    
+    func tapeAsString(_ tape: [String])-> String {
+        var result = ""
+        for s in tape {result += s}
+        return result
+    }
+    
+    func runTuring(initialTape: String, initialState: Int, initialHead: Int)-> (numberSteps: Int, finalTape: String, trace: [String]) {
+        self.tapeAsString = initialTape
+        var tapeAsStrings = tapeAsString.map{String($0)}
+        var head = initialHead
+        var state = initialState
+        var csic = "\(state) \(tapeAsStrings[head])"
+        var trace = [String]()
+        var step = " "
+        
+        while key[csic] != nil || head > tapeAsStrings.count {
+            numSteps += 1
+            let tuple = key[csic]!
+            
+            step = "\(numSteps): {cs: \(tuple.currentState), ic: \(tuple.inputChar),ns: \(tuple.newState),oc: \(tuple.outputChar),di: \(tuple.direction)} "
+            
+            tapeAsStrings[head] = String(tuple.outputChar)
+            state = tuple.newState
+            if tuple.direction == Direction.right {head += 1} else {head += -1}
+            
+            var tapeCopy = tapeAsStrings
+            tapeCopy[head] = "[\(tapeCopy[head])]"
+            step += "\(tapeAsString(tapeCopy))"
+            trace.append(step)
+            tapeCopy[head] = "\(tapeAsStrings[head])"
+            
+            csic = "\(state) \(tapeAsStrings[head])"
+        }
+        return (numSteps, tapeAsString(tapeAsStrings), trace)
+    }
+}
+
+
+import Foundation
+
+//TTUPLE STRUCT
+import Foundation
+
+enum Direction {
+    case left, right
+}
+
+struct TTuple: CustomStringConvertible {
+    let currentState: Int
+    let inputChar: Character
+    let newState: Int
+    let outputChar: Character
+    let direction: Direction
+    static var key = " "
+    
+    static func makeKey(state: Int, inputChar: Character)-> String {
+        key = "\(state) \(inputChar)"
+        return key
+    }
+    
+    func getKey()-> String {
+        return TTuple.key
+    }
+    
+    init(currentState: Int, inputChar: Character, newState: Int, outputChar: Character, direction: Direction) {
+        self.currentState = currentState
+        self.inputChar = inputChar
+        self.newState = newState
+        self.outputChar = outputChar
+        self.direction = direction
+    }
+    
+    var description: String {
+        return "cs: \(currentState) ic: \(inputChar) ns: \(newState) oc: \(outputChar) di: \(direction)"
+    }
+    
+    func nakedTuple()-> String {
+        return "\(currentState)  \(inputChar)  \(newState)  \(outputChar)  \(direction)"
+    }
+}
+
+
+
+
+
+
+
+
+
+import Foundation
+
+//HELPER FUNCTIONS
+func splitStringIntoParts(expression: String)-> [String] {
+    return expression.split{$0 == " "}.map{String($0)}
+}
+
+func splitStringIntoLines(expression: String)-> [String] {
+    return expression.split{$0 == "\n"}.map{String($0)}
+}
+
+
+//TTUPLE HELPER FUNCTIONS
+func readTuples(tuplesAsString: String)-> [TTuple] {
+    var ttuples = [TTuple]()
+    let tuplesStringArray = splitStringIntoLines(expression: tuplesAsString)
+    for t in tuplesStringArray {ttuples.append(makeTTupleFromString(t))}
+    return ttuples
+}
+
+func makeTTupleFromString(_ data: String)-> TTuple {
+    var direction: Direction
+    let elements = splitStringIntoParts(expression: data)
+    
+    let currentState = Int(elements[0])!
+    let newState = Int(elements[2])!
+    let inputChar = elements[1].first!
+    let outputChar = elements[3].first!
+    let directionAsChar = elements[4]
+    
+    direction = (directionAsChar == "l") || (directionAsChar == "L") ? .left : .right
+    return TTuple(currentState: currentState, inputChar: inputChar, newState: newState, outputChar: outputChar, direction: direction)
+}
+
+
+
+
+
+
+var tupleString = "0 _ 0 _ r\n"
+tupleString += "0 0 1 1 r\n"
+tupleString += "0 1 1 0 r\n"
+tupleString += "1 1 1 0 r\n"
+tupleString += "1 0 1 1 r\n"
+
+let tuplesArray = readTuples(tuplesAsString: tupleString)
+let tvm = TuringVM(ttuplesArray: tuplesArray)
+let result = tvm.runTuring(initialTape: "_111000_", initialState: 0, initialHead: 0)
+print("Tuples:\n")
+print(tvm.nakedTupleReport())
+print("Initial String: \"_111000\" Initial State: 0 Initial Head Position: 0")
+print("\n*Running Turing*\n")
+print("Number Steps In Run: \(result.numberSteps)")
+print("Final Tape: \(result.finalTape)")
+print("\nTrace:")
+for line in result.trace{print("" + line)}
+
