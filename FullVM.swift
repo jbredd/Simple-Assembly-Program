@@ -9,30 +9,63 @@
 import Foundation
 
 struct FullVM {
-    var instructionPointer: Int
-    var memory: [Int]
-    let size: Int
-    let startAddress : Int
+    var instructionPointer: Int = 0
+    var memory = [Int](repeating: 0, count: 1000)
+    var size: Int = 0
+    var startAddress : Int = 1
+    var binary = [0]
     var registers = Array(repeating: 0, count: 10)
     let support = Support()
     var statusFlag = StatusFlag()
+    var userInput = ""
+    var wasCrashed = false
     
     //unsure about the mechanics of this one:
     var stackRegister = 0
     var console: String = ""
     
-    init(mem: [Int]) {
+    init(){}/*mem: [Int]) {
         memory = mem
         size = mem[0]
         startAddress = mem[1]
         instructionPointer = startAddress + 2 //the plus 2 is because memory actually starts
         //from memory[2] as opposed to memory[0] due to length and startAddress taking 2 spaces
-    }
+    }*/
     
     mutating func run() {
-        while(true) {
+        print("Welcome to SAP!")
+        help()
+        print(">", terminator: "")
+        userInput = readLine()!
+        while userInput != "quit"{
+            var splitInput = support.splitStringIntoParts(userInput)
+            switch splitInput[0] {
+            //for each case first the number of arguments is checked and then whether the type of the argument is as expected
+            case "read":
+                if numArgs(splitInput) != 1 {print("The command 'read' takes in 1 argument, you put in \(numArgs(splitInput)). Please type again carefully\n"); break}
+                read(splitInput[1])
+            case "run":
+                if numArgs(splitInput) != 0 {print("The command 'run' takes in 0 arguments, you put in \(numArgs(splitInput)). Please type again carefully\n"); break};
+                executeBinary()
+                if wasCrashed {print("\n...Binary execution unsuccessful")}
+                else {print("\n...Binary execution successful")}
+            case "help":
+                if numArgs(splitInput) != 0 {print("The command 'help' takes in 0 arguments, you put in \(numArgs(splitInput)). Please type again carefully\n"); break}
+                help()
+            case "quit":
+                if numArgs(splitInput) != 0 {print("The command 'quit' takes in 0 arguments, you put in \(numArgs(splitInput)). Please type again carefully\n"); break}
+                return
+            default: print("'\(userInput)' is an invalid command. Please type again carefully\n")
+            }
+            print(">", terminator: "")
+            userInput = readLine()!
+        }
+    }
+    mutating func executeBinary() {
+        instructionPointer = startAddress + 1
+        while(pointerIsInMemoryBounds()) {
             switch memory[instructionPointer] {
-            case 0: return //halt
+            case 0: wasCrashed = false; return //halt
             case 1: clrr(memory[instructionPointer + 1])
             case 2: clrx(memory[instructionPointer + 1])
             case 3: clrm(memory[instructionPointer + 1])
@@ -90,12 +123,18 @@ struct FullVM {
             case 55: outs(memory[instructionPointer + 1])
             case 56: nop()
             case 57: jmpne(memory[instructionPointer + 1])
-            default: print("invalid instruction")
+            default:
+                print("Error: Nonexistent instruction called, instruction # \(memory[instructionPointer]) does not exist")
+                wasCrashed = true; return
             }
         }
-        print("...Run Finished")
+        wasCrashed = true
+        print("Error: Index out of bounds, tried to access memory location \(instructionPointer)")
+        return
     }
-    
+}
+
+extension FullVM { //extension for helper functions
     func getString(_ labelAddress: Int)->String {
         var toReturn = ""
         let stringLength = memory[labelAddress]
@@ -106,10 +145,49 @@ struct FullVM {
             pointer += 1
         }
         return toReturn
+    } //finds the string at a given memory address
+    
+    func pointerIsInMemoryBounds()-> Bool {
+        return (0 <= instructionPointer && instructionPointer < memory.count)
+    } //determines if the instructionPointer is pointing to an existing memory address
+    
+    func help() {
+        var toReturn = "Full Virtual Machine Help:"
+        toReturn += "\n    read <path> - read file and write its binary to memory"
+        toReturn += "\n    run - execute the binary"
+        toReturn += "\n    help - print this help menu"
+        toReturn += "\n    quit - quit virtual machine"
+        print(toReturn)
+    } //prints help menu
+    
+    mutating func read(_ path: String) {
+        if support.readTextFile(path).fileText == nil {
+            print(support.readTextFile(path).message!)
+            return
+        }
+        let fileContent = support.readTextFile(path).fileText!
+        print(fileContent)
+        
+        let binaryStrings = support.splitStringIntoLines(fileContent)
+        binary = Array(repeating: 0, count: binaryStrings.count)
+        for n in 0..<binaryStrings.count {
+            if Int(binaryStrings[n]) != nil {
+                binary[n] = Int(binaryStrings[n])!
+            } else {print("...file contained nonbinary elements, cannot be read to memory"); return}
+        }
+        size = binary[0]
+        startAddress = binary[1]
+        instructionPointer = startAddress
+        for n in 2..<binary.count { //binary[0] and binary[1] not part of memory
+            memory[n - 2] = binary[n]
+        }
+        print("...reading binary file complete")
+    }
+    
+    func numArgs(_ args: [String])-> Int {
+        return args.count - 1
     }
 }
-
-
 //extension for executing instructions
 extension FullVM {
     /*
@@ -131,12 +209,12 @@ extension FullVM {
     }
     
     mutating func clrx(_ rIndex: Int) { //2
-        memory[registers[rIndex] + 2] = 0
+        memory[registers[rIndex]] = 0
         instructionPointer += 2
     }
     
     mutating func clrm(_ labelAddress: Int) { //3
-        memory[memory[labelAddress + 2] + 2] = 0
+        memory[memory[labelAddress]] = 0
         instructionPointer += 2
     }
     
@@ -163,12 +241,12 @@ extension FullVM {
     }
     
     mutating func movrm(_ rIndex: Int, _ labelAddress: Int) { //7
-        memory[labelAddress + 2] = registers[rIndex]
+        memory[labelAddress] = registers[rIndex]
         instructionPointer += 3
     }
     
     mutating func movmr(_ labelAddress: Int, _ rIndex: Int) { //8
-        let labelValue = memory[labelAddress + 2]
+        let labelValue = memory[labelAddress]
         registers[rIndex] = labelValue
         instructionPointer += 3
     }
@@ -198,12 +276,12 @@ extension FullVM {
     }
     
     mutating func addmr(_ labelAddress: Int, _ rIndex: Int) { //14
-        registers[rIndex] += memory[labelAddress + 2]
+        registers[rIndex] += memory[labelAddress]
         instructionPointer += 3
     }
     
     mutating func addxr(_ r1Index: Int, _ r2Index: Int) { //15
-        registers[r2Index] += memory[registers[r1Index] + 2]
+        registers[r2Index] += memory[registers[r1Index]]
         instructionPointer += 3
     }
     
@@ -218,12 +296,12 @@ extension FullVM {
     }
     
     mutating func submr(_ labelAddress: Int, _ rIndex: Int) { //18
-        registers[rIndex] -= memory[labelAddress + 2]
+        registers[rIndex] -= memory[labelAddress]
         instructionPointer += 3
     }
     
     mutating func subxr(_ r1Index: Int, _ r2Index: Int) { //19
-        registers[r2Index] *= memory[registers[r1Index] + 2]
+        registers[r2Index] *= memory[registers[r1Index]]
         instructionPointer += 3
     }
     
@@ -238,12 +316,12 @@ extension FullVM {
     }
     
     mutating func mulmr(_ labelAddress: Int, _ rIndex: Int) { //22
-        registers[rIndex] *= memory[labelAddress + 2]
+        registers[rIndex] *= memory[labelAddress]
         instructionPointer += 3
     }
     
     mutating func mulxr(_ r1Index: Int, _ r2Index: Int) { //23
-        registers[r2Index] *= memory[registers[r1Index] + 2]
+        registers[r2Index] *= memory[registers[r1Index]]
         instructionPointer += 3
     }
     
@@ -258,12 +336,12 @@ extension FullVM {
     }
     
     mutating func divmr(_ labelAddress: Int, _ rIndex: Int) { //26
-        registers[rIndex] /= memory[labelAddress + 2]
+        registers[rIndex] /= memory[labelAddress]
         instructionPointer += 3
     }
     
     mutating func divxr(_ r1Index: Int, _ r2Index: Int) { //27
-        registers[r2Index] /= memory[registers[r1Index] + 2]
+        registers[r2Index] /= memory[registers[r1Index]]
         instructionPointer += 3
     }
     
@@ -391,25 +469,32 @@ extension FullVM {
     }
     
     mutating func readi(_ r1Index: Int, _ r2Index: Int) { //48
-        //not sure how to implement - I believe we may need to implement something to store console outputs. Also how does the error code work?
+        let digitSet = CharacterSet.decimalDigits
+        if digitSet.contains(console.unicodeScalars.last!){
+            registers[r1Index] = Int(String(console.last!))!
+            registers[r2Index] = 0
+        }
+        else{
+            registers[r2Index] = 1
+        }
         instructionPointer += 3
     }
     
     mutating func printi(_ rIndex: Int) { //49
         print(registers[rIndex], terminator: "")
+        console += String(registers[rIndex])
         instructionPointer += 2
     }
     
     mutating func readc(_ rIndex: Int) { //50
-        //not sure how to implement - I believe we may need to implement something to store console outputs
+        registers[rIndex] = Int(String(console.last!))!
         instructionPointer += 2
     }
     
     mutating func readln(_ labelAddress: Int, _ rIndex: Int) { //51
-        //not sure how to implement - I believe we may need to implement something to store console outputs
         var charactersUni = [Int]()
         let consoleLines = support.splitStringIntoLines(console)
-        let ln = consoleLines[0]
+        let ln = consoleLines.last!
         var i = 1
         for c in ln {charactersUni.append(support.characterToUnicodeValue(c))}
         memory[labelAddress] = ln.count
@@ -422,7 +507,7 @@ extension FullVM {
     }
     
     mutating func brk() { //52
-        //not sure how to implement
+        //not sure how to implement (if even possible without the debugger)
         instructionPointer += 1
     }
     
@@ -439,6 +524,7 @@ extension FullVM {
     mutating func outs(_ labelAddress: Int) { //55
         let toPrint = getString(labelAddress + 2)
         print(toPrint, terminator: "")
+        console += toPrint
         instructionPointer += 2
     }
     
@@ -454,8 +540,3 @@ extension FullVM {
         }
     }
 }
-}
-
-
-
-
