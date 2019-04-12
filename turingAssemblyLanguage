@@ -1,0 +1,135 @@
+.Start Test
+ Tuple1: .tuple \0 _ 0 _ r\ ;mem[0, 1, 2, 3, 4]
+ Tuple2: .tuple \0 1 1 0 r\ ;mem[5, 6, 7, 8, 9]
+ Tuple3: .tuple \0 0 1 1 r\ ;mem[10, 11, 12, 13, 14]
+ Tuple4: .tuple \1 0 1 1 r\ ;mem[15, 16, 17, 18, 19]
+ Tuple5: .tuple \1 1 1 0 r\ ;mem[20, 21, 22, 23, 24]
+ initialTape: .String "_111000_" ;mem[25, 26, 27, 28, 29, 30, 31, 32]
+ initialState: .Integer #0
+ initialTapeHead: .Integer #0
+ 
+ newLine: .Integer #10
+ welcome: .String "Welcome to Turing!"
+ tuples: .String "Tuples:"
+ initialStateMess: .String "Initial State: "
+ initialTapeHeadMess: .String "Initial Tape Head: "
+ initialTapeMess: .String "Initial Tape: "
+ 
+ Test: movir #25 r4 ;mem[25] is where the initial tape starts
+    outs welcome ;"Welcome To Turing"
+    outci #10 ;"\n"
+    outci #10 ;"\n"
+    outs tuples ;"Tuples:"
+    jsr printTuples
+    jsr printInitialstuff
+ 
+ 
+
+
+ printTuples: outci #10 ;"\n"
+ ;IMPORTANT NOTES:
+ ; first off, the purpose of this sr is to print out all the tuples.
+ ; in order to do this, we must use printi as that is the only way to print out an integer rather than a character converted from an integer. Using movir and movxr for each element of a tuple seems redundant but it is actually necessary since there is no instruction to move the integer of a memory address to a register (the only thing similar is movmr but that takes in a label name rather than a label address which is basically the same but syntactically not)
+ ; i used movir to move the desired memory location to a register to set up for movxr which actually moves the contents of that memory location to the register. An integer must be in a register to use printi
+ ; each large block of code is for printing out one tuple. As there are 5 tuples, each with 5 elements, we must use the movir/movxr pairing 5 * 5 = 25 times, each for a different memory location accessing a different element for a specific tuple. To see where each element of each tuple is in memory, please refer to the comments next to the tuple declarations. All in all, the 5 tuples use mem[0-24]
+ 
+    movir #0 r5 ;set up for printi
+    movxr r5 r5 ;set up for printi
+    movir #1 r6 ;set up for printi
+    movxr r6 r6 ;set up for printi
+    movir #2 r7 ;set up for printi
+    movxr r7 r7 ;set up for printi
+    movir #3 r8 ;set up for printi
+    movxr r8 r8 ;set up for printi
+    movir #4 r9 ;set up for printi
+    movxr r9 r9 ;set up for printi
+    printi r5; prints first character of Tuple1
+    printi r6; prints second character of Tuple1
+    printi r7; prints third character of Tuple1
+    printi r8; prints fourth character of Tuple1
+    printi r9; prints fifth character of Tuple1
+    outci #10 ;"\n"
+ 
+    movir #5 r5 ;set up for printi
+    movxr r5 r5 ;set up for printi
+    movir #6 r6 ;set up for printi
+    movxr r6 r6 ;set up for printi
+    movir #7 r7 ;set up for printi
+    movxr r7 r7 ;set up for printi
+    movir #8 r8 ;set up for printi
+    movxr r8 r8 ;set up for printi
+    movir #9 r9 ;set up for printi
+    movxr r9 r9 ;set up for printi
+    printi r5; prints first character of Tuple2
+    printi r6; prints second character of Tuple2
+    printi r7; prints third character of Tuple2
+    printi r8; prints fourth character of Tuple2
+    printi r9; prints fifth character of Tuple2
+    outci #10 ;"\n"
+ 
+    movir #10 r5 ;set up for printi
+    movxr r5 r5 ;set up for printi
+    movir #11 r6 ;set up for printi
+    movxr r6 r6 ;set up for printi
+    movir #12 r7 ;set up for printi
+    movxr r7 r7 ;set up for printi
+    movir #13 r8 ;set up for printi
+    movxr r8 r8 ;set up for printi
+    movir #14 r9 ;set up for printi
+    movxr r9 r9 ;set up for printi
+    printi r5; prints first character of Tuple3
+    printi r6; prints second character of Tuple3
+    printi r7; prints third character of Tuple3
+    printi r8; prints fourth character of Tuple3
+    printi r9; prints fifth character of Tuple3
+    outci #10 ;"\n"
+ 
+    movir #15 r5 ;set up for printi
+    movxr r5 r5 ;set up for printi
+    movir #16 r6 ;set up for printi
+    movxr r6 r6 ;set up for printi
+    movir #17 r7 ;set up for printi
+    movxr r7 r7 ;set up for printi
+    movir #18 r8 ;set up for printi
+    movxr r8 r8 ;set up for printi
+    movir #19 r9 ;set up for printi
+    movxr r9 r9 ;set up for printi
+    printi r5; prints first character of Tuple4
+    printi r6; prints second character of Tuple4
+    printi r7; prints third character of Tuple4
+    printi r8; prints fourth character of Tuple4
+    printi r9; prints fifth character of Tuple4
+    outci #10 ;"\n"
+ 
+    movir #20 r5 ;set up for printi
+    movxr r5 r5 ;set up for printi
+    movir #21 r6 ;set up for printi
+    movxr r6 r6 ;set up for printi
+    movir #22 r7 ;set up for printi
+    movxr r7 r7 ;set up for printi
+    movir #23 r8 ;set up for printi
+    movxr r8 r8 ;set up for printi
+    movir #24 r9 ;set up for printi
+    movxr r9 r9 ;set up for printi
+    printi r5; prints first character of Tuple5
+    printi r6; prints second character of Tuple5
+    printi r7; prints third character of Tuple5
+    printi r8; prints fourth character of Tuple5
+    printi r9; prints fifth character of Tuple5
+    outci #10 ;"\n"
+ 
+ printInitialStuff: outci #10 ;"\n"
+ ;printing initialState and initialTapeHead is not as simple as using any out instructions like initialTape since they are integers and initialTape is a string
+    outs initialStateMess ;"Initial State: "
+    movmr initialState r5
+    printi r5 ;"\(initialState)"
+    outci #10 ;"\n"
+ 
+    outs initialTapeHeadMess ;"Initial Tape Head: "
+    movmr initialTapeHead r5
+    printi r5 ;"\(initialTapeHead)"
+    outci #10 ;"\n"
+ 
+    outs initialTapeMess ;"Initial Tape: "
+    outs initialTape ;"\(initialTape)"
+    outci #10 ;"\n"
