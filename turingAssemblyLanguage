@@ -9,6 +9,7 @@
 ; by updating tapeStart. If the tape itself is different, update tape, tapeStart, tapeLength, and
 ; tapeInitialHead
 
+.Start run
 ;take note that each .tuple takes up 7 memory locations
 Tuple01:  .tuple \ 0 _ 0 _ 1\ ; mem[0-6]
 Tuple02:  .tuple \ 0 1 1 0 1\ ; mem[7-13]
