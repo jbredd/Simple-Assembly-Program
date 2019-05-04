@@ -456,7 +456,7 @@ extension FullVM {
     
     mutating func jsr(_ labelAddress: Int) { //39
         pushr5to9()
-        retTo = instructionPointer + 2
+        retTo.append(instructionPointer + 2)
         //i'm not sure how else this would work since you need to know what memory address to go back to after coming back from a subroutine
         jmp(labelAddress)
         //unconditional jump
@@ -464,7 +464,7 @@ extension FullVM {
     
     mutating func ret() { //40
         popr5to9()
-        jmp(retTo)
+        jmp(retTo.remove(at: retTo.count - 1))
         //unconditional jump
     }
     
@@ -486,7 +486,7 @@ extension FullVM {
     }
     
     mutating func outci(_ int: Int) { //44
-        print(int, terminator: "")
+        print(support.unicodeValueToCharacter(int), terminator: "")
         console += String(int)
         instructionPointer += 2
     }
