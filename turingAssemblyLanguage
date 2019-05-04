@@ -41,8 +41,7 @@ steps:  .String “ steps”
 
 
 
-findTuple: jsr getTupleAddress ; memory address of the tuple is in r0, pointing to \
-	addir #1 r0 ; r0 now pointing to the cs of the tuple
+findTuple: jsr getTupleAddress ; memory address of the tuple is in r0, pointing to cs
 	movxr r0 r1 ; r1 contains cs of the tuple
 	cmpmr currentState r1
 	jmpz checkic ; if the current states match, then the ic comparison is next
@@ -167,8 +166,7 @@ brackets: outci #91 ; “[”
 	jsr printTuple
 	ret
 
-printTuple: jsr getTupleAddress
-	addir #1 r0 ; r0 has cs address
+printTuple: jsr getTupleAddress ; r0 now has cs address
 	movxr r0 r1
 	printi r1
 	outci #32 ; space
