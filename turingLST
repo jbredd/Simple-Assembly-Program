@@ -1,0 +1,190 @@
+Printing /users/Nicholas/Desktop/TuringMachine.lst: 
+Tuple01:  .tuple \ 0 _ 0 _ 1\ ; mem[0-6]
+..........Improper syntax for tuple
+Tuple02:  .tuple \ 0 1 1 0 1\ ; mem[7-13]
+..........Improper syntax for tuple
+Tuple03:  .tuple \ 0 0 1 1 1\ ; mem[14-20]
+..........Improper syntax for tuple
+Tuple04:  .tuple \ 1 0 1 1 1\ ; mem[21-27]
+..........Improper syntax for tuple
+Tuple05:  .tuple \ 1 1 1 0 1\ ; mem[28-34]
+..........Improper syntax for tuple
+tape:  .String “_010101_” ; mem[35-43]
+..........Expected string
+tapeStart:  .Integer #36 ; not 35 since that holds length of tape
+tapeLength:  .Integer #8
+numTuples:  .Integer #5
+currentState:  .Integer #0
+tapeInitialHead:  .Integer #0
+welcomeLine:  .String “Welcome to Turing!”
+..........Expected string
+..........Illegal paramaters for directive string
+tuplesIntro:  .String “Tuples:”
+..........Expected string
+initialStateIntro:  .String “Initial State: ”
+..........Expected string
+..........Illegal paramaters for directive string
+initialHeadIntro:  .String “Initial Tape Head: ”
+..........Expected string
+..........Illegal paramaters for directive string
+initialTapeIntro:  .String “Initial Tape: ”
+..........Expected string
+..........Illegal paramaters for directive string
+completionMessage:  .String “Turing run complete”
+..........Expected string
+..........Illegal paramaters for directive string
+finalTapeOutro:  .String “Final Tape: ”
+..........Expected string
+..........Illegal paramaters for directive string
+thatTook:  .String “That took ”
+..........Expected string
+..........Illegal paramaters for directive string
+steps:  .String “ steps”
+..........Expected string
+findTuple: jsr getTupleAddress ; memory address of the tuple is in r0, pointing to \
+	addir #1 r0 ; r0 now pointing to the cs of the tuple
+	movxr r0 r1 ; r1 contains cs of the tuple
+	cmpmr currentState r1
+	jmpz checkic ; if the current states match, then the ic comparison is next
+	jmpnz nextTuple ; tuple cs does not match, move to next tuple comparison
+..........Expected Instruction or Directive
+	
+nextTuple: addir #1 r4 ; tuple number increased by 1
+	movmr numTuples r5
+	addir #1 r5
+	cmprr r5 r4 ; to see if all tuples have been checked
+	jmpz end
+	jmpnz  findTuples
+..........Expected Instruction or Directive
+checkic: addir #1 r0 ; r0 points to ic of the tuple
+	movxr r2 r3 ; r3 has specific character of the tape
+	movxr r0 r1 ; r1 has ic of the tuple
+	cmprr r1 r3 ; compares character of tape with ic of tuple
+	jmpz executeTuple ; executes tuple if cs and ic match
+	jmpnz nextTuple
+..........Expected Instruction or Directive
+; tupleAddress = 7(tupleNumber - 1)
+getTupleAddress: movrr r4 r0
+	subir #1 r0
+	mulir #7 r0
+	ret
+executeTuple: addir #1 r9 ; r9 has number of steps
+	jsr printTrace
+	outci #10
+	addir #1 r0 ; tupleAddress now points to ns
+	movxr r0 r1 ; ns in r1
+	movrm r1 currentState ; currentState now set to the tuple’s ns
+	addir #1 r0 ; tupleAddress now points to oc
+	movxx r1 r2 ; tape character becomes tuple’s oc
+	jmp executeDirection
+executeDirection: addir #1 r0 ; tuple address now points to di
+	movxr r0 r1 ; di in r1, note that 1 is right, -1 is left
+	cmpir #0 r1
+	jmpp goLeft ; goes left if r1 is -1, or left
+	jmpn goRight ; goes right if r1 is 1, or right
+goLeft: subir #1 r2 ; tapePointer moved to the left
+	jmp checkEndTape
+goRight: addir #1 r2 ; tapePointer moved to the right
+	jmp checkEndTape
+;tapePointer is out of tape if <= 35 or >= 44
+checkEndTape: movmr tapeStart r3
+	subir #1 r3 ; r3 should now contain the first out of tape to the left address
+	cmprr r2 r3 ; r2 holds tapePointer
+	jmpz end
+	addir #1 r3
+	addmr tapeLength r3 ; r3 should now hold the first memory address past tape
+	cmprr r2 r3
+	jmpz end; if it goes past this then not at end of tape, go back to searching tuples
+..........Illegal paramaters for instruction jmpz
+	movir #1 r4 ; start with checking tuple01
+	jmp findTuple
+printIntroMess: outs welcomeLine ; “Welcome to Turing!”
+	outci #10 ; new line
+	outci #10 
+	outs tuplesIntro ; “Tuples:”
+	outci #10
+	jsr printTuples
+	outci #10
+	outs initialStateIntro ; “Initial State: ”
+	movmr currentState r5
+	printi r5
+	outci #10
+	outs initialHeadIntro ; “Initial Tape Head: ”
+	movmr tapeInitialHead r5
+	printi r5
+	outci #10
+	outs initialTapeIntro ; “Initial Tape: ”
+	outs tape
+	outci #10
+	outci #10
+	ret
+printTuples: jsr getTupleAddress ; tuple address now in r0
+	jsr printTuple
+	outci #32 ; new line for next tuple
+	addir #1 r4 ; next tuple number
+	movmr numTuples r5
+	addir #1 r5
+	cmprr #5 r4 ; sees if this was the last tuple
+..........Wrong paramaters for cmprr
+	jmpnz printTuples
+..........Expected Instruction or Directive
+	ret
+run: movmr tapeStart r2 ; tape pointer is in r2
+	addmr tapeInitialHead r2 ; r2 is adjusted with head
+	movir #1 r4 ; set tuple number to 1
+	jsr printIntroMess
+	movir #1 r4 ; reset tuple number to 1 since it was modified in printTuples
+	jmp findTuple
+;tupleNumber in r4, tapePointer in r2, first tape char address in r3 for first call
+printTrace: cmprr r2 r3 ; 
+	jmpz brackets ; if same then brackets
+	outcx r3 ; else print normally
+	addir #1 r3 ; next char address
+	movmr tapeStart r5
+	addmr tapeLength r5 ; now r5 holds first out of tape address
+	cmprr r3 r5
+	jmpnz printTrace ; if not equal then still more of tape to print
+..........Expected Instruction or Directive
+	jsr printTuple ; else move onto printing the associated tuple for execution
+	ret
+brackets: outci #91 ; “[”
+	outcx r3 ; “\(tapeChar)”
+	outci #93 ; “]”
+	addir #1 r3
+	movmr tapeStart r5
+	addmr tapeLength r5 ; now r5 holds first out of tape address
+	cmprr r3 r5
+	jmpnz printTrace
+..........Expected Instruction or Directive
+	jsr printTuple
+	ret
+printTuple: jsr getTupleAddress
+	addir #1 r0 ; r0 has cs address
+	movxr r0 r1
+	printi r1
+	outci #32 ; space
+	addir #1 r0 ; r0 has ic address
+	movxr r0 r1 
+	outcr r1 
+	outci #32 
+	addir #1 r0 ; r0 has ns address
+	movxr r0 r1
+	printi r1
+	outci #32 
+	addir #1 r0 ; r0 has oc address
+	movxr r0 r1
+	outcr r1
+	outci #32 
+	addir #1 r0 ; r0 has di address
+	movxr r0 r1
+	printi r1 
+	ret
+end: outs completionMessage ; “Turing run complete”
+	outci #10
+	outs finalTapeOutro ; “Final Tape: ”
+	outs tape
+	outci #10
+	outs thatTook ; “That took ”
+	printi r9 
+	outs steps ; “ steps”
+	halt	
