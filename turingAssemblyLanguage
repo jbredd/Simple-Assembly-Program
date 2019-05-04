@@ -9,13 +9,12 @@
 ; by updating tapeStart. If the tape itself is different, update tape, tapeStart, tapeLength, and
 ; tapeInitialHead
 
-.Start run
 ;take note that each .tuple takes up 7 memory locations
-Tuple01:  .tuple \ 0 _ 0 _ 1\ ; mem[0-6]
-Tuple02:  .tuple \ 0 1 1 0 1\ ; mem[7-13]
-Tuple03:  .tuple \ 0 0 1 1 1\ ; mem[14-20]
-Tuple04:  .tuple \ 1 0 1 1 1\ ; mem[21-27]
-Tuple05:  .tuple \ 1 1 1 0 1\ ; mem[28-34]
+Tuple01:  .tuple \0 _ 0 _ 1\ ; mem[0-6]
+Tuple02:  .tuple \0 1 1 0 1\ ; mem[7-13]
+Tuple03:  .tuple \0 0 1 1 1\ ; mem[14-20]
+Tuple04:  .tuple \1 0 1 1 1\ ; mem[21-27]
+Tuple05:  .tuple \1 1 1 0 1\ ; mem[28-34]
 
 tape:  .String “_010101_” ; mem[35-43]
 tapeStart:  .Integer #36 ; not 35 since that holds length of tape
@@ -40,26 +39,28 @@ steps:  .String “ steps”
 
 
 
+
+
 findTuple: jsr getTupleAddress ; memory address of the tuple is in r0, pointing to \
 	addir #1 r0 ; r0 now pointing to the cs of the tuple
 	movxr r0 r1 ; r1 contains cs of the tuple
 	cmpmr currentState r1
 	jmpz checkic ; if the current states match, then the ic comparison is next
-	jmpnz nextTuple ; tuple cs does not match, move to next tuple comparison
+	jmp nextTuple ; tuple cs does not match, move to next tuple comparison
 	
 nextTuple: addir #1 r4 ; tuple number increased by 1
 	movmr numTuples r5
 	addir #1 r5
 	cmprr r5 r4 ; to see if all tuples have been checked
 	jmpz end
-	jmpnz  findTuples
+	jmp  findTuples
 
 checkic: addir #1 r0 ; r0 points to ic of the tuple
 	movxr r2 r3 ; r3 has specific character of the tape
 	movxr r0 r1 ; r1 has ic of the tuple
 	cmprr r1 r3 ; compares character of tape with ic of tuple
 	jmpz executeTuple ; executes tuple if cs and ic match
-	jmpnz nextTuple
+	jmp nextTuple
 
 ; tupleAddress = 7(tupleNumber - 1)
 getTupleAddress: movrr r4 r0
@@ -100,7 +101,7 @@ checkEndTape: movmr tapeStart r3
 	addir #1 r3
 	addmr tapeLength r3 ; r3 should now hold the first memory address past tape
 	cmprr r2 r3
-	jmpz end; if it goes past this then not at end of tape, go back to searching tuples
+	jmpz end ; if it goes past this then not at end of tape, go back to searching tuples
 	movir #1 r4 ; start with checking tuple01
 	jmp findTuple
 
@@ -131,8 +132,8 @@ printTuples: jsr getTupleAddress ; tuple address now in r0
 	addir #1 r4 ; next tuple number
 	movmr numTuples r5
 	addir #1 r5
-	cmprr #5 r4 ; sees if this was the last tuple
-	jmpnz printTuples
+	cmprr r5 r4 ; sees if this was the last tuple
+	jmpp printTuples
 	ret
 
 run: movmr tapeStart r2 ; tape pointer is in r2
@@ -151,7 +152,7 @@ printTrace: cmprr r2 r3 ;
 	movmr tapeStart r5
 	addmr tapeLength r5 ; now r5 holds first out of tape address
 	cmprr r3 r5
-	jmpnz printTrace ; if not equal then still more of tape to print
+	jmpn printTrace ; if not equal then still more of tape to print
 	jsr printTuple ; else move onto printing the associated tuple for execution
 	ret
 
@@ -162,7 +163,7 @@ brackets: outci #91 ; “[”
 	movmr tapeStart r5
 	addmr tapeLength r5 ; now r5 holds first out of tape address
 	cmprr r3 r5
-	jmpnz printTrace
+	jmpn printTrace
 	jsr printTuple
 	ret
 
