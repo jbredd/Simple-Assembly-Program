@@ -10,11 +10,11 @@
 ; tapeInitialHead
 
 ;take note that each .tuple takes up 7 memory locations
-Tuple01:  .tuple \0 _ 0 _ 1\ ; mem[0-6]
-Tuple02:  .tuple \0 1 1 0 1\ ; mem[7-13]
-Tuple03:  .tuple \0 0 1 1 1\ ; mem[14-20]
-Tuple04:  .tuple \1 0 1 1 1\ ; mem[21-27]
-Tuple05:  .tuple \1 1 1 0 1\ ; mem[28-34]
+Tuple01:  .tuple \0 _ 0 _ r\ ; mem[0-6]
+Tuple02:  .tuple \0 1 1 0 r\ ; mem[7-13]
+Tuple03:  .tuple \0 0 1 1 r\ ; mem[14-20]
+Tuple04:  .tuple \1 0 1 1 r\ ; mem[21-27]
+Tuple05:  .tuple \1 1 1 0 r\ ; mem[28-34]
 
 tape:  .String “_010101_” ; mem[35-43]
 tapeStart:  .Integer #36 ; not 35 since that holds length of tape
@@ -53,7 +53,7 @@ nextTuple: addir #1 r4 ; tuple number increased by 1
 	addir #1 r5
 	cmprr r5 r4 ; to see if all tuples have been checked
 	jmpz end
-	jmp  findTuples
+	jmp  findTuple
 
 checkic: addir #1 r0 ; r0 points to ic of the tuple
 	movxr r2 r3 ; r3 has specific character of the tape
