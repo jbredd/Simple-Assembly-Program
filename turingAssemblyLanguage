@@ -9,16 +9,15 @@
 ; by updating tapeStart. If the tape itself is different, update tape, tapeStart, tapeLength, and
 ; tapeInitialHead
 
-.Start run
 ;take note that each .tuple takes up 7 memory locations
-Tuple01:  .tuple \0 _ 0 _ r\ ; mem[0-6]
-Tuple02:  .tuple \0 1 1 0 r\ ; mem[7-13]
-Tuple03:  .tuple \0 0 1 1 r\ ; mem[14-20]
-Tuple04:  .tuple \1 0 1 1 r\ ; mem[21-27]
-Tuple05:  .tuple \1 1 1 0 r\ ; mem[28-34]
+Tuple01:  .tuple \0 _ 0 _ 1\ ; mem[0-4]
+Tuple02:  .tuple \0 1 1 0 1\ ; mem[5-9]
+Tuple03:  .tuple \0 0 1 1 1\ ; mem[10-14]
+Tuple04:  .tuple \1 0 1 1 1\ ; mem[15-19]
+Tuple05:  .tuple \1 1 1 0 1\ ; mem[20-24]
 
-tape:  .String “_010101_” ; mem[35-43]
-tapeStart:  .Integer #36 ; not 35 since that holds length of tape
+tape:  .String “_010101_” ; mem[25-33]
+tapeStart:  .Integer #26 ; not 25 since that holds length of tape
 tapeLength:  .Integer #8
 
 numTuples:  .Integer #5
@@ -63,10 +62,10 @@ checkic: addir #1 r0 ; r0 points to ic of the tuple
 	jmpz executeTuple ; executes tuple if cs and ic match
 	jmp nextTuple
 
-; tupleAddress = 7(tupleNumber - 1)
+; tupleAddress = 5(tupleNumber - 1)
 getTupleAddress: movrr r4 r0
 	subir #1 r0
-	mulir #7 r0
+	mulir #5 r0
 	ret
 
 executeTuple: addir #1 r9 ; r9 has number of steps
