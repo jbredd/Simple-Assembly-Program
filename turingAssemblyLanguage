@@ -129,7 +129,7 @@ printIntroMess: outs welcomeLine ; “Welcome to Turing!”
 
 printTuples: jsr getTupleAddress ; tuple address now in r0
 	jsr printTuple
-	outci #32 ; new line for next tuple
+	outci #10 ; new line for next tuple
 	addir #1 r4 ; next tuple number
 	movmr numTuples r5
 	addir #1 r5
