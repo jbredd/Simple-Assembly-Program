@@ -10,7 +10,7 @@ import Foundation
 struct FullVM {
     //runs the assembly binary code for the Doubles Program
     var instructionPointer = 0
-    var memory = Array(repeating: 0, count: 10000)
+    var memory = Array(repeating: 0, count: 1000)
     var binary = [0]
     var size = 0
     var startAddress = 0
@@ -28,7 +28,7 @@ struct FullVM {
         return 0
     }
     var console: String = ""
-    var retTo = 0
+    var retTo = [Int]()
     
 
     init() {}
@@ -64,11 +64,19 @@ struct FullVM {
     }
     
     mutating func executeBinary() {
+        for i in 0..<memory.count {
+            print("\(i):   \(memory[i])")
+        }
         instructionPointer = startAddress
         while(pointerIsInMemoryBounds()) {
             if wasCrashed == true {return}
             switch memory[instructionPointer] {
-            case 0: wasCrashed = false; return //halt
+            case 0: wasCrashed = false;
+            /*
+                for i in 0..<memory.count {
+                    print("\(i):   \(memory[i])")
+                }*/
+                return //halt
             case 1: clrr(memory[instructionPointer + 1])
             case 2: clrx(memory[instructionPointer + 1])
             case 3: clrm(memory[instructionPointer + 1])
@@ -200,13 +208,13 @@ extension FullVM {
     }
     //therefore r9 should be popped first, r5 last
     mutating func popr5to9() {
-        for n in 9...5 {
+        for n in 1...5 {
             var popped = stack.pop()
             if popped == nil {
                 wasCrashed = true
                 return
             }
-            registers[n] = popped!
+            registers[10 - n] = popped!
         }
     }
 }
@@ -272,7 +280,7 @@ extension FullVM {
     }
     
     mutating func movxr(_ r1Index: Int, _ r2Index: Int) { //9
-        registers[r2Index] = registers[r1Index]
+        registers[r2Index] = memory[registers[r1Index]]
         instructionPointer += 3
     }
     
