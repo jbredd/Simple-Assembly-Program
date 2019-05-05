@@ -71,14 +71,15 @@ executeTuple: addir #1 r9 ; r9 has number of steps
 	movmr tapeStart r3 ; necessary for trace
 	jsr printTrace
 	outci #10
-	addir #1 r0 ; tupleAddress now points to ns
+	printi r0 ; TEST
+	addir #1 r0 ; r0 has ns address
+	printi r0 ; TEST
 	movxr r0 r1 ; ns in r1
 	movrm r1 currentState ; currentState now set to the tuple’s ns
-	addir #1 r0 ; tupleAddress now points to oc
-	movxr r0 r1 ; oc in r1, TEST
-	outcr r1 ; TEST
+	addir #1 r0 ; r0 has oc address
+	printi r0 ; TEST
+	outci #10 ; TEST
 	movxx r0 r2 ; tape character becomes tuple’s oc
-	movrx r1 r2 ; TEST
 	jmp executeDirection
 
 
