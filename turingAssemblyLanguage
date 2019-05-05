@@ -68,14 +68,17 @@ getTupleAddress: movrr r4 r0
 	ret
 
 executeTuple: addir #1 r9 ; r9 has number of steps
-	movmr tapeStart r3
+	movmr tapeStart r3 ; necessary for trace
 	jsr printTrace
 	outci #10
 	addir #1 r0 ; tupleAddress now points to ns
 	movxr r0 r1 ; ns in r1
 	movrm r1 currentState ; currentState now set to the tuple’s ns
 	addir #1 r0 ; tupleAddress now points to oc
+	movxr r0 r1 ; oc in r1, TEST
+	outcr r1 ; TEST
 	movxx r0 r2 ; tape character becomes tuple’s oc
+	movrx r1 r2 ; TEST
 	jmp executeDirection
 
 
@@ -153,6 +156,7 @@ printTrace: cmprr r2 r3 ;
 	addmr tapeLength r5 ; now r5 holds first out of tape address
 	cmprr r3 r5
 	jmpn printTrace ; if not equal then still more of tape to print
+	outci #32
 	jsr printTuple ; else move onto printing the associated tuple for execution
 	ret
 
