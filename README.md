@@ -10,6 +10,8 @@ Turing Machine                         4/24/19                 10
 Assembler                              5/13/19                 30
 Debugger with Disassembler             6/3/19                  20
 
+new due date: 5/21 but not checked until 5/29
+
 
 Hints:
 memory is 10000 spaces, when binary files are read in, fill in left over memory with 0s.
