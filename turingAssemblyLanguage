@@ -9,14 +9,16 @@
 ; by updating tapeStart. If the tape itself is different, update tape, tapeStart, tapeLength, and
 ; tapeInitialHead
 
-;take note that each .tuple takes up 7 memory locations
-Tuple01:  .tuple \0 _ 0 _ 1\ ; mem[0-4]
-Tuple02:  .tuple \0 1 1 0 1\ ; mem[5-9]
-Tuple03:  .tuple \0 0 1 1 1\ ; mem[10-14]
-Tuple04:  .tuple \1 0 1 1 1\ ; mem[15-19]
-Tuple05:  .tuple \1 1 1 0 1\ ; mem[20-24]
+.Start run
 
-tape:  .String “_010101_” ; mem[25-33]
+;take note that each .tuple takes up 7 memory locations
+Tuple01:  .tuple \0 _ 0 _ r\ ; mem[0-4]
+Tuple02:  .tuple \0 1 1 0 r\ ; mem[5-9]
+Tuple03:  .tuple \0 0 1 1 r\ ; mem[10-14]
+Tuple04:  .tuple \1 0 1 1 r\ ; mem[15-19]
+Tuple05:  .tuple \1 1 1 0 r\ ; mem[20-24]
+
+tape:  .String "_010101_" ; mem[25-33]
 tapeStart:  .Integer #26 ; not 25 since that holds length of tape
 tapeLength:  .Integer #8
 
@@ -24,15 +26,15 @@ numTuples:  .Integer #5
 currentState:  .Integer #0
 tapeInitialHead:  .Integer #0
 
-welcomeLine:  .String “Welcome to Turing!”
-tuplesIntro:  .String “Tuples:”
-initialStateIntro:  .String “Initial State: ”
-initialHeadIntro:  .String “Initial Tape Head: ”
-initialTapeIntro:  .String “Initial Tape: ”
-completionMessage:  .String “Turing run complete”
-finalTapeOutro:  .String “Final Tape: ”
-thatTook:  .String “That took ”
-steps:  .String “ steps”
+welcomeLine:  .String "Welcome to Turing!"
+tuplesIntro:  .String "Tuples:"
+initialStateIntro:  .String "Initial State: "
+initialHeadIntro:  .String "Initial Tape Head: "
+initialTapeIntro:  .String "Initial Tape: "
+completionMessage:  .String "Turing run complete"
+finalTapeOutro:  .String "Final Tape: "
+thatTook:  .String "That took "
+steps:  .String " steps"
 
 
 
