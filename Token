@@ -1,0 +1,20 @@
+import Foundation
+
+struct Token: CustomStringConvertible {
+    let type: TokenType
+    let intValue: Int?
+    let stringValue: String?
+    let tupleValue: Tuple?
+    
+    init(_ type: TokenType, iValue: Int? = nil, sValue: String? = nil, tValue: Tuple? = nil) {
+        self.type = type
+        self.intValue = iValue
+        self.stringValue = sValue
+        self.tupleValue = tValue
+    }
+    
+    var description: String {
+        var toRet = "token type: \(type), value: "
+        return toRet
+    }
+}
