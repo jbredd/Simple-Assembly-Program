@@ -15,6 +15,17 @@ struct Token: CustomStringConvertible {
     
     var description: String {
         var toRet = "token type: \(type), value: "
+        switch type{
+        case .Register: toRet += stringValue!
+            case .LabelDefinition: toRet += stringValue!
+            case .Label: toRet += stringValue!
+            case .ImmediateString: toRet += stringValue!
+            case .ImmediateInteger: toRet += stringValue!
+            case .ImmediateTuple: toRet += "\\\(tupleValue!.currentState)  \(tupleValue!.inputCharacter) \(tupleValue!.newState) \(tupleValue!.outputCharacter) \(tupleValue!.direction)\\"
+            case .Instruction: toRet += stringValue!
+            case .Directive: toRet += stringValue!
+            default: toRet += "None"
+        }
         return toRet
     }
 }
