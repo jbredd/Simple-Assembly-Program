@@ -1,18 +1,10 @@
-//
-//  Assembler.swift
-//  PartialVM
-//
-//  Created by Nicholas Hatzis-Schoch on 4/28/19.
-//  Copyright © 2019 Slick Games. All rights reserved.
-//
-
 import Foundation
 
 struct Assembler{
-    let inputCode = ""
+    var inputCode = [String]()
     let support = Support()
     var userInput = ""
-    init(){} 
+    init(){}
 }
 
 extension Assembler{
@@ -66,5 +58,15 @@ extension Assembler{
             }
         }
         return chunks
+    }
+    mutating func read(_ path: String) {
+        if support.readTextFile(path).fileText == nil {
+            print(support.readTextFile(path).message!)
+            return
+        }
+        let fileContent = support.readTextFile(path).fileText!
+        print(fileContent)
+        self.inputCode = support.splitStringIntoLines(fileContent)
+        print("...SAP file reading complete")
     }
 }
