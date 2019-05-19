@@ -13,10 +13,12 @@ struct Tokenizer {
     let digits = Set(Array("0123456789"))
     var tokens = [Token]()
     
-    mutating func tokenizeChunks(_ chunks: [[Character]]) {
+    mutating func tokenizeChunks(_ chunks: [String])->[Token]  {
+        var toRet = [Token]()
         for c in chunks {
-            tokens.append(tokenizeChunk(c))
+            toRet.append(tokenizeChunk(Array(c)))
         }
+        return toRet
     }
     func tokenizeChunk(_ chunk: [Character])-> Token {
         let firstChar = chunk[0]
@@ -31,16 +33,17 @@ struct Tokenizer {
          check if it is an immediate or a directive
          */
         switch firstChar {
-            case "\"":
-                if lastChar == "\"" && chunk.count >= 2 {
-                    token = Token(.ImmediateString, sValue: getString(chunk))
-                }
-            case "\\":
-                if lastChar == "\\" && chunk.count == 11 && digits.contains(chunk[1]) && digits.contains(chunk[5]) && chunk[2] == " " && chunk[4] == " " && chunk[6] == " " && chunk[8] == " " && (chunk[9] == "r" || chunk[9] == "l"){
-                    token = Token(.ImmediateTuple, tValue: Tuple(cs: Int(String(chunk[1]))!, ic: chunk[3], ns: Int(String(chunk[5]))!, oc: chunk[7], di: chunk[9]))
-                }
-            default:
-                token =  Token(.BadToken)
+        case "\"":
+            if lastChar == "\"" && chunk.count >= 2 {
+                token = Token(.ImmediateString, sValue: getString(chunk))
+            }
+        case "\\":
+            if lastChar == "\\" && chunk.count == 11 && digits.contains(chunk[1]) && digits.contains(chunk[5]) && chunk[2] == " " && chunk[4] == " " && chunk[6] == " " && chunk[8] == " " && (chunk[9] == "r" || chunk[9] == "l"){
+                if chunk[9] == "r" {let di = 1} else {let di = -1}
+                token = Token(.ImmediateTuple, tValue: Tuple(cs: Int(String(chunk[1]))!, ic: chunk[3], ns: Int(String(chunk[5]))!, oc: chunk[7], di: di))
+            }
+        default:
+            token =  Token(.BadToken)
         }
         if isLabel(chunk){
             token = Token(.Label, sValue: getString(chunk))
@@ -94,14 +97,14 @@ struct Tokenizer {
     }
     func isInstruction(_ chunk: [Character])-> Bool {
         var instructions = [String]()
-        for i in Instruction.allCases{
+        for i in Instruction.allCases {
             instructions.append(i.description)
         }
         return instructions.contains(String(chunk))
     }
     func isDirective(_ chunk: [Character])-> Bool {
         let chunkStr = getString(chunk)
-        return chunkStr == ".string" || chunkStr == ".integer" || chunkStr == ".tuple"
+        return chunkStr == ".string" || chunkStr == ".integer" || chunkStr == ".tuple" || chunkStr == ".start"
     }
     func isImmediateInteger(_ chunk: [Character])-> Bool{
         if chunk[0] != "#"{return false}
@@ -114,5 +117,4 @@ struct Tokenizer {
             return true
         }
     }
-}
 }
