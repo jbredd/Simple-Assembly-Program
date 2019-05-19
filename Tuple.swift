@@ -5,9 +5,9 @@ struct Tuple: CustomStringConvertible {
     let inputCharacter: Character
     let newState: Int
     let outputCharacter: Character
-    let direction: Character
+    let direction: Int
     
-    init(cs: Int, ic: Character, ns: Int, oc: Character, di: Character){
+    init(cs: Int, ic: Character, ns: Int, oc: Character, di: Int){
         self.currentState = cs
         self.inputCharacter = ic
         self.newState = ns
