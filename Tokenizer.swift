@@ -1,11 +1,3 @@
-//
-//  Tokenizer.swift
-//  PartialVM
-//
-//  Created by Nicholas Hatzis-Schoch on 5/12/19.
-//  Copyright © 2019 Slick Games. All rights reserved.
-//
-
 import Foundation
 
 struct Tokenizer {
@@ -39,7 +31,8 @@ struct Tokenizer {
             }
         case "\\":
             if lastChar == "\\" && chunk.count == 11 && digits.contains(chunk[1]) && digits.contains(chunk[5]) && chunk[2] == " " && chunk[4] == " " && chunk[6] == " " && chunk[8] == " " && (chunk[9] == "r" || chunk[9] == "l"){
-                if chunk[9] == "r" {let di = 1} else {let di = -1}
+                var di = 0
+                if chunk[9] == "r" {di = 1} else {di = -1}
                 token = Token(.ImmediateTuple, tValue: Tuple(cs: Int(String(chunk[1]))!, ic: chunk[3], ns: Int(String(chunk[5]))!, oc: chunk[7], di: di))
             }
         default:
