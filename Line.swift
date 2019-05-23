@@ -32,10 +32,26 @@ struct Line: CustomStringConvertible {
                 if characters[i] == "\"" || characters[i] == "\\" {
                     ignoreSpaces = false
                 }
+                if i == characters.count - 1 {chunks.append(chunk)}
             }
         }
+        var cChunks = charChunks()
+        if cChunks.count > 0{
+            for i in 0..<cChunks.count{
+                if cChunks[i][0] == ";"{
+                    chunks.removeSubrange(i..<cChunks.count)
+                }
+            }
+        }
+        chunks = chunks.filter{$0.count > 0}
     }
-    
+    func charChunks()->[[Character]]{
+        var chChunks = [[Character]]()
+        for c in chunks{
+            chChunks.append(Array(c))
+        }
+        return chChunks
+    }
     func printLine() {
         for c in chunks {print("\(c) ")}
     }
