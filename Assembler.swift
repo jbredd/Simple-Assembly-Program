@@ -3,12 +3,12 @@ import Foundation
 struct Assembler{
     var inputCode = [String]()
     var legalProgram = false
-    var binary = [Int]()
     let support = Support()
     var instructionArgs: [String: [TokenType]] = [:]
     var directiveArgs: [String : [TokenType]] = [:]
     var symVal: [String: Int] = [:]
     var userInput = ""
+    var vm = FullVM()
     init() {fillDictionary()}
     
     func help(){
@@ -22,7 +22,29 @@ struct Assembler{
         toReturn += "\n    quit - quit virtual machine"
         print(toReturn)
     }
-    
+    mutating func run(){
+        help()
+        print("> ", terminator: "")
+        userInput = readLine()!
+        var splitCommands = support.splitStringIntoParts(userInput)
+        while userInput != "quit"{
+            splitCommands = support.splitStringIntoParts(userInput)
+            switch splitCommands[0]{
+                case "asm": assemble(splitCommands[1])
+                case "run": vm.run()
+                case "path": print("")
+                case "printlst":print("")
+                case "printbin": for b in vm.binary{
+                    print(b)
+                }
+                case "help": help()
+            default: print("Error - not a valid command. Please type again carefully.")
+            }
+            userInput = readLine()!
+        }
+        print("...Assembler exited.")
+        
+    }
     mutating func read(_ path: String) {
         if support.readTextFile(path).fileText == nil {
             print(support.readTextFile(path).message!)
@@ -36,14 +58,20 @@ struct Assembler{
     
     func makeLines()-> [Line] {
         var lines = [Line]()
+        let linesCount = lines.count
         for i in 0..<inputCode.count {
-            lines.append(Line(i, inputCode[i]))
+            if Line(i, inputCode[i]).chunks.count > 0{lines.append(Line(i, inputCode[i]))}
         }
+        /*for i in 0..<linesCount{
+            if (lines[i].chunks.filter{$0.count > 0}).count == 0{
+                lines.remove(at: i)
+            }
+        }*/
         return lines
     }
     
-    mutating func assemble() {
-        passOne()
+    mutating func assemble(_ path: String) {
+        passOne(path)
         passTwo()
     }
     
@@ -115,7 +143,8 @@ struct Assembler{
 
 // PASS ONE
 extension Assembler{
-    mutating func passOne() {
+    mutating func passOne(_ path: String) {
+        read(path)
         legalProgram = true
         let lines = makeLines()
         makeSymVal(lines)
@@ -159,13 +188,17 @@ extension Assembler{
     
     func validInstructionArgs(_ line: Line)-> (Bool, String) {
         let expected = instructionArgs[line.chunks[0]]
-        if line.tokens.count > expected!.count + 1 {return (false, "\n..........\(line.chunks[0]) has too many arguments")}
-        for i in 0..<expected!.count {
-            if line.tokens[i+1].type != expected![i] {
-                return (false, "\n..........Instruction \(line.chunks[0]) arguments are not as expected")
+        if expected != nil{
+            if line.tokens.count > expected!.count + 1 {return (false, "\n..........\(line.chunks[0]) has too many arguments")}
+        
+            for i in 0..<expected!.count {
+                if line.tokens[i+1].type != expected![i] {
+                    return (false, "\n..........Instruction \(line.chunks[0]) arguments are not as expected")
+                }
             }
+            return (true, "")
         }
-        return (true, "")
+        return (false, "")
     }
 }
 
@@ -181,11 +214,11 @@ extension Assembler {
         for l in lines {
             for i in 0..<l.tokens.count {
                 switch l.tokens[i].type {
-                case .Register: binary.append(Translator.registers[l.chunks[i]]!)
+                case .Register: vm.binary.append(Translator.registers[l.chunks[i]]!)
                 case .ImmediateString: translateString(l.tokens[i].stringValue!)
-                case .ImmediateInteger: binary.append(l.tokens[i].intValue!)
+                case .ImmediateInteger: vm.binary.append(l.tokens[i].intValue!)
                 case .ImmediateTuple: translateTuple(l.tokens[i])
-                case .Instruction: binary.append(Translator.instructions[l.chunks[i]]!)
+                case .Instruction: vm.binary.append(Translator.instructions[l.chunks[i]]!)
                 default: print("wut")
                 }
             }
@@ -193,18 +226,18 @@ extension Assembler {
     }
     // \0 _ 0 _ r\
     mutating func translateTuple(_ token: Token) {
-        binary.append(token.tupleValue!.currentState) //should be cs
-        binary.append(support.characterToUnicodeValue(token.tupleValue!.inputCharacter)) //should be ic
-        binary.append(token.tupleValue!.newState) //should be ns
-        binary.append(support.characterToUnicodeValue(token.tupleValue!.outputCharacter)) //should be oc
-        binary.append(token.tupleValue!.direction) //should be di
+        vm.binary.append(token.tupleValue!.currentState) //should be cs
+        vm.binary.append(support.characterToUnicodeValue(token.tupleValue!.inputCharacter)) //should be ic
+        vm.binary.append(token.tupleValue!.newState) //should be ns
+        vm.binary.append(support.characterToUnicodeValue(token.tupleValue!.outputCharacter)) //should be oc
+        vm.binary.append(token.tupleValue!.direction) //should be di
     }
     
     mutating func translateString(_ string: String) {
         let stringChars = Array(string)
-        binary.append(stringChars.count)
+        vm.binary.append(stringChars.count)
         for c in stringChars {
-            binary.append(support.characterToUnicodeValue(c))
+            vm.binary.append(support.characterToUnicodeValue(c))
         }
     }
 }
