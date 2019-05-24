@@ -1,26 +1,25 @@
 import Foundation
 
 struct Assembler{
-    var inputCode = [String]()
+    var lines = [Line]()
     var legalProgram = false
     let support = Support()
     var instructionArgs: [String: [TokenType]] = [:]
     var directiveArgs: [String : [TokenType]] = [:]
     var symVal: [String: Int] = [:]
     var userInput = ""
-    var vm = FullVM()
     init() {fillDictionary()}
     
     func help(){
-        var toReturn = "Full Virtual Machine Help:"
-        toReturn += "\n    asm <program name> - assemble the specified program"
-        toReturn += "\n    run <program name> - run the specified program"
-        toReturn += "\n    path <path specification> - set the path for the SAP program directory include final / but not name of file. SAP file must have an extension of .txt"
-        toReturn += "\n    printlst <program name> - print listing file for the specified program"
-        toReturn += "\n    printbin <program name> - print binary file for the specified program"
-        toReturn += "\n    help - print this help menu"
-        toReturn += "\n    quit - quit virtual machine"
-        print(toReturn)
+        var toPrint = "SAP Help:"
+        toPrint += "\n    asm <program name> - assemble the specified program"
+        toPrint += "\n    run <program name> - run the specified program"
+        toPrint += "\n    path <path specification> - set the path for the SAP program directory include final / but not name of file. SAP file must have an extension of .txt"
+        toPrint += "\n    printlst <program name> - print listing file for the specified program"
+        toPrint += "\n    printbin <program name> - print binary file for the specified program"
+        toPrint += "\n    help - print this help menu"
+        toPrint += "\n    quit - quit virtual machine"
+        print(toPrint)
     }
     mutating func run(){
         help()
@@ -30,14 +29,14 @@ struct Assembler{
         while userInput != "quit"{
             splitCommands = support.splitStringIntoParts(userInput)
             switch splitCommands[0]{
-                case "asm": assemble(splitCommands[1])
-                case "run": vm.run()
-                case "path": print("")
-                case "printlst":print("")
-                case "printbin": for b in vm.binary{
-                    print(b)
+            case "asm": assemble(splitCommands[1])
+            case "run": print("")
+            case "path": print("")
+            case "printlst":print("")
+            case "printbin": for b in vm.binary{
+                print(b)
                 }
-                case "help": help()
+            case "help": help()
             default: print("Error - not a valid command. Please type again carefully.")
             }
             userInput = readLine()!
@@ -51,28 +50,24 @@ struct Assembler{
             return
         }
         let fileContent = support.readTextFile(path).fileText!
-        print(fileContent)
-        self.inputCode = support.splitStringIntoLines(fileContent)
+        let inputCode = support.splitStringIntoLines(fileContent)
+        for i in 0..<inputCode.count {
+            //print("\(i + 1)     \(inputCode[i])")
+            if inputCode[i].count > 0 {
+                lines.append(Line(i + 1, inputCode[i]))
+            }
+        }
         print("...SAP file reading complete")
     }
     
-    func makeLines()-> [Line] {
-        var lines = [Line]()
-        let linesCount = lines.count
-        for i in 0..<inputCode.count {
-            if Line(i, inputCode[i]).chunks.count > 0{lines.append(Line(i, inputCode[i]))}
-        }
-        /*for i in 0..<linesCount{
-            if (lines[i].chunks.filter{$0.count > 0}).count == 0{
-                lines.remove(at: i)
-            }
-        }*/
-        return lines
-    }
     
     mutating func assemble(_ path: String) {
         passOne(path)
-        passTwo()
+        if passTwo() == nil {print("pass two failed")}
+        else {
+            print("pass two successful")
+            print(passTwo()!)
+        }
     }
     
     mutating func fillDictionary() {
@@ -139,17 +134,22 @@ struct Assembler{
         instructionArgs["nop"] = []
         instructionArgs["jmpne"] = [.Label]
     }
+    
+    func printSymVal() {
+        for (k, _) in symVal {print("\(k) \(symVal[k]!)")}
+    }
 }
 
 // PASS ONE
 extension Assembler{
+    //passOne makes symVal and checks for legality
     mutating func passOne(_ path: String) {
         read(path)
         legalProgram = true
-        let lines = makeLines()
         makeSymVal(lines)
+        printSymVal()
         for l in lines {
-            l.printLine()
+            print(l, terminator: "")
             if !isLegal(l).0 {legalProgram = false}
             print(isLegal(l).1)
         }
@@ -165,79 +165,101 @@ extension Assembler{
         }
     }
     
+    // returns (args are legal, error message)
     func isLegal(_ line: Line)-> (Bool, String) {
         let chunks = line.chunks
         let tokens = line.tokens
-        switch tokens[0].type {
-        case .Instruction: return validInstructionArgs(line)
-        case .Directive: return validDirectiveArg(line)
-        case .LabelDefinition:
-            if line.tokens[1].type == .Instruction {return validInstructionArgs(line)} // THIS LINE IS WRONG
-            return (false, "\n..........A Label Definition must be followed by an Instruction")
-        case .BadToken: return (false, "\n..........\(chunks[0]) is a Bad Token")
-        default: return (false, "\n..........Line must start with an Instruction, Directive, or Label Definition")
-        }
+        if tokens.count >= 1 {
+            switch tokens[0].type {
+            case .Instruction: return validInstructionArgs(line, 0)
+            case .Directive: return validDirectiveArg(line, 0)
+            case .LabelDefinition:
+                if tokens[1].type == .Instruction {return validInstructionArgs(line, 1)}
+                if tokens[1].type == .Directive {return validDirectiveArg(line, 1)}
+                return (false, "\n..........A Label Definition must be followed by an Instruction or a Directive")
+            case .BadToken: return (false, "\n..........\(chunks[0]) is a Bad Token")
+            default: return (false, "\n..........Line must start with an Instruction, .Start, or a Label Definition")
+            }
+        } else {return (true, "")} //to account for comment/blank lines
     }
     
-    func validDirectiveArg(_ line: Line)-> (Bool, String) {
-        let expected = directiveArgs[line.chunks[0]]
-        if line.tokens.count != 2 {return (false, "\n..........Directives should take in one argument")}
-        if line.tokens[1].type == expected![0] {return (true, "")}
-        return (false, "\n..........\(line.chunks[0]) should take in a \(expected![0])")
-    }
-    
-    func validInstructionArgs(_ line: Line)-> (Bool, String) {
-        let expected = instructionArgs[line.chunks[0]]
+    //(args are legal, error message), the start arg is the index of the instruction token
+    func validInstructionArgs(_ line: Line, _ start: Int)-> (Bool, String) {
+        let expected = instructionArgs[line.chunks[start]]
         if expected != nil{
-            if line.tokens.count > expected!.count + 1 {return (false, "\n..........\(line.chunks[0]) has too many arguments")}
-        
+            if line.tokens.count - start > expected!.count + 1 {return (false, "\n..........\(line.chunks[start]) has too many arguments")}
             for i in 0..<expected!.count {
-                if line.tokens[i+1].type != expected![i] {
-                    return (false, "\n..........Instruction \(line.chunks[0]) arguments are not as expected")
+                if expected![i] == .Label && !labelExists(line.chunks[i + start + 1]) {return (false, "\n..........Label \"\(line.chunks[start + i + 1])\" has not been defined")}
+                if line.tokens[start + i + 1].type != expected![i] {
+                    return (false, "\n..........Instruction \(line.chunks[start]) arguments are not as expected")
                 }
             }
             return (true, "")
         }
         return (false, "")
     }
+    
+    //(args are legal, error message), the start arg is the index of the directive token
+    func validDirectiveArg(_ line: Line, _ start: Int)-> (Bool, String) {
+        let expected = directiveArgs[line.chunks[start]]
+        if line.tokens.count - start != 2 {return (false, "\n..........Directives should take in one argument")}
+        if line.tokens[start + 1].type == expected![0] {return (true, "")}
+        return (false, "\n..........\(line.chunks[start]) should take in an \(expected![0])")
+    }
+    
+    func labelExists(_ label: String)-> Bool {
+        return symVal[label + ":"] != nil
+    }
 }
 
 // PASS TWO
 extension Assembler {
-    mutating func passTwo() {
-        if !legalProgram {return}
-        translate()
+    // pass two makes binary and list files
+    mutating func passTwo()->[Int]? {
+        if !legalProgram {return nil}
+        return translate()
     }
     
-    mutating func translate() {
-        let lines = makeLines()
+    mutating func translate()->[Int] {
+        var binary = [Int]()
         for l in lines {
             for i in 0..<l.tokens.count {
                 switch l.tokens[i].type {
-                case .Register: vm.binary.append(Translator.registers[l.chunks[i]]!)
-                case .ImmediateString: translateString(l.tokens[i].stringValue!)
-                case .ImmediateInteger: vm.binary.append(l.tokens[i].intValue!)
-                case .ImmediateTuple: translateTuple(l.tokens[i])
-                case .Instruction: vm.binary.append(Translator.instructions[l.chunks[i]]!)
-                default: print("wut")
+                case .Register: binary.append(Translator.registers[l.chunks[i]]!)
+                case .ImmediateString: for b in translateString(l.tokens[i].stringValue!) {binary.append(b)}
+                case .ImmediateInteger: binary.append(l.tokens[i].intValue!)
+                case .ImmediateTuple: for b in translateTuple(l.tokens[i]) {binary.append(b)}
+                case .Instruction: binary.append(Translator.instructions[l.chunks[i]]!)
+                case .Label: binary.append(symVal[l.chunks[i] + ":"]!)
+                case .Directive: print("", terminator: "") //does nothing
+                case .LabelDefinition: print("", terminator: "") //does nothing
+                default: print("this should never be printed as pass one should vet for legality")
                 }
             }
         }
+        //.start location already at beginning due to label locations
+        //being put into memory whenever they are encountered
+        binary.insert(binary.count - 1, at: 0) //program length
+        return binary
     }
     // \0 _ 0 _ r\
-    mutating func translateTuple(_ token: Token) {
-        vm.binary.append(token.tupleValue!.currentState) //should be cs
-        vm.binary.append(support.characterToUnicodeValue(token.tupleValue!.inputCharacter)) //should be ic
-        vm.binary.append(token.tupleValue!.newState) //should be ns
-        vm.binary.append(support.characterToUnicodeValue(token.tupleValue!.outputCharacter)) //should be oc
-        vm.binary.append(token.tupleValue!.direction) //should be di
+    mutating func translateTuple(_ token: Token)->[Int] {
+        var binary = [Int]()
+        binary.append(token.tupleValue!.currentState) //should be cs
+        binary.append(support.characterToUnicodeValue(token.tupleValue!.inputCharacter)) //should be ic
+        binary.append(token.tupleValue!.newState) //should be ns
+        binary.append(support.characterToUnicodeValue(token.tupleValue!.outputCharacter)) //should be oc
+        binary.append(token.tupleValue!.direction) //should be di
+        return binary
     }
     
-    mutating func translateString(_ string: String) {
+    mutating func translateString(_ string: String)->[Int] {
+        var binary = [Int]()
         let stringChars = Array(string)
-        vm.binary.append(stringChars.count)
+        binary.append(stringChars.count)
         for c in stringChars {
-            vm.binary.append(support.characterToUnicodeValue(c))
+            binary.append(support.characterToUnicodeValue(c))
         }
+        return binary
     }
 }
