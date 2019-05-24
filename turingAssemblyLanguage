@@ -10,7 +10,6 @@
 ; tapeInitialHead
 
 .Start run
-
 ;take note that each .tuple takes up 7 memory locations
 Tuple01:  .tuple \0 _ 0 _ r\ ; mem[0-4]
 Tuple02:  .tuple \0 1 1 0 r\ ; mem[5-9]
@@ -54,7 +53,7 @@ nextTuple: addir #1 r4 ; tuple number increased by 1
 	addir #1 r5
 	cmprr r5 r4 ; to see if all tuples have been checked
 	jmpz end
-	jmp  findTuple
+	jmp findTuple
 
 checkic: addir #1 r0 ; r0 points to ic of the tuple
 	movxr r2 r3 ; r3 has specific character of the tape
@@ -73,7 +72,7 @@ executeTuple: addir #1 r9 ; r9 has number of steps
 	movmr tapeStart r3 ; necessary for trace
 	jsr printTrace
 	outci #10
-	subir #3 r0 ; to accomodate for r0 shift, not sure how it shifted in the first place
+	subir #3 r0 ; to accommodate for r0 shift in printTrace
 	addir #1 r0 ; r0 has ns address
 	movxr r0 r1 ; ns in r1
 	movrm r1 currentState ; currentState now set to the tuple’s ns
