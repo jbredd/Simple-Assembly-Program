@@ -1,17 +1,18 @@
 import Foundation
 
+
 struct Line: CustomStringConvertible {
-    var characters: [Character]
+    var lineText: String
     var chunks = [String]()
     var tokens = [Token]()
     var number: Int
-    var tokenizer = Tokenizer()
     
     init(_ number: Int, _ line: String) {
-        characters = Array(line)
+        lineText = line
         self.number = number
-        chunkinize(characters)
-        tokens = tokenizer.tokenizeChunks(chunks)
+        chunkinize(Array(line))
+        for i in 0..<chunks.count {chunks[i] = chunks[i].lowercased()}
+        tokens = Tokenizer.tokenizeChunks(chunks)
     }
     
     mutating func chunkinize(_ characters: [Character]) {
@@ -19,7 +20,7 @@ struct Line: CustomStringConvertible {
         var chunk = ""
         for i in 0..<characters.count {
             if !ignoreSpaces {
-                if characters[i] == " " {
+                if characters[i] == " " || characters[i] == "\t" {
                     chunks.append(chunk)
                     chunk = ""
                 } else {
@@ -38,7 +39,7 @@ struct Line: CustomStringConvertible {
         var cChunks = charChunks()
         if cChunks.count > 0{
             for i in 0..<cChunks.count{
-                if cChunks[i][0] == ";"{
+                if cChunks[i].contains(";") {
                     chunks.removeSubrange(i..<cChunks.count)
                 }
             }
@@ -52,15 +53,8 @@ struct Line: CustomStringConvertible {
         }
         return chChunks
     }
-    func printLine() {
-        for c in chunks {print("\(c) ")}
-    }
     
     var description: String {
-        var description = "Line #\(number):\n"
-        description += "  characters: \(characters)\n"
-        description += "  chunks: \(chunks)\n"
-        description += "  tokens: \(tokens)\n"
-        return description
+        return lineText
     }
 }
