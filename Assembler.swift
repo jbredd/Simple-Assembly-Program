@@ -1,12 +1,17 @@
 import Foundation
 
 struct Assembler{
+    var programName = "turing"
     var lines = [Line]()
     var legalProgram = false
-    let support = Support()
+    var start = 0
+    var length = 0
+    var mem = [Int]()
     var instructionArgs: [String: [TokenType]] = [:]
     var directiveArgs: [String : [TokenType]] = [:]
     var symVal: [String: Int] = [:]
+    
+    let support = Support()
     var userInput = ""
     init() {fillDictionary()}
     
@@ -63,11 +68,8 @@ struct Assembler{
     
     mutating func assemble(_ path: String) {
         passOne(path)
-        if passTwo() == nil {print("pass two failed")}
-        else {
-            print("pass two successful")
-            print(passTwo()!)
-        }
+        print("pass two successful")
+        passTwo()
     }
     
     mutating func fillDictionary() {
@@ -155,11 +157,19 @@ extension Assembler{
         }
     }
     
-    mutating func makeSymVal(_ lines: [Line]) {
+    mutating func makeSymVal(_ lines: [Line]) { //WRONG
+        var memLocation = -1 //to account for .start label not taking up a space
         for l in lines {
             for i in 0..<l.tokens.count {
-                if l.tokens[i].type == .LabelDefinition {
-                    symVal[l.chunks[i]] = l.number
+                switch l.tokens[i].type {
+                case .LabelDefinition: symVal[l.chunks[i]] = memLocation
+                case .ImmediateInteger: memLocation += 1
+                case .ImmediateString: memLocation += l.chunks[i].count - 1
+                case .ImmediateTuple: memLocation += 5
+                case .Label: memLocation += 1
+                case .Instruction: memLocation += 1
+                case .Register: memLocation += 1
+                default: memLocation += 0 //executed if .Directive or .BadToken, in which case no memory locations modified
                 }
             }
         }
@@ -215,22 +225,23 @@ extension Assembler{
 // PASS TWO
 extension Assembler {
     // pass two makes binary and list files
-    mutating func passTwo()->[Int]? {
-        if !legalProgram {return nil}
-        return translate()
+    mutating func passTwo() {
+        if !legalProgram {return}
+        translate()
+        printLst()
     }
     
-    mutating func translate()->[Int] {
-        var binary = [Int]()
+    mutating func translate() {
+        mem = [Int]()
         for l in lines {
             for i in 0..<l.tokens.count {
                 switch l.tokens[i].type {
-                case .Register: binary.append(Translator.registers[l.chunks[i]]!)
-                case .ImmediateString: for b in translateString(l.tokens[i].stringValue!) {binary.append(b)}
-                case .ImmediateInteger: binary.append(l.tokens[i].intValue!)
-                case .ImmediateTuple: for b in translateTuple(l.tokens[i]) {binary.append(b)}
-                case .Instruction: binary.append(Translator.instructions[l.chunks[i]]!)
-                case .Label: binary.append(symVal[l.chunks[i] + ":"]!)
+                case .Register: mem.append(Translator.registers[l.chunks[i]]!)
+                case .ImmediateString: for b in translateString(l.tokens[i].stringValue!) {mem.append(b)}
+                case .ImmediateInteger: mem.append(l.tokens[i].intValue!)
+                case .ImmediateTuple: for b in translateTuple(l.tokens[i]) {mem.append(b)}
+                case .Instruction: mem.append(Translator.instructions[l.chunks[i]]!)
+                case .Label: mem.append(symVal[l.chunks[i] + ":"]!)
                 case .Directive: print("", terminator: "") //does nothing
                 case .LabelDefinition: print("", terminator: "") //does nothing
                 default: print("this should never be printed as pass one should vet for legality")
@@ -239,8 +250,12 @@ extension Assembler {
         }
         //.start location already at beginning due to label locations
         //being put into memory whenever they are encountered
-        binary.insert(binary.count - 1, at: 0) //program length
-        return binary
+        start = mem[0]
+        length = mem.count - 1
+        mem.remove(at: 0)
+        print(length)
+        print(start)
+        for i in 0..<mem.count {print("\(i): \(mem[i])")}
     }
     // \0 _ 0 _ r\
     mutating func translateTuple(_ token: Token)->[Int] {
@@ -261,5 +276,70 @@ extension Assembler {
             binary.append(support.characterToUnicodeValue(c))
         }
         return binary
+    }
+    
+    func getIgnore(_ tokens: [Token])-> Int {
+        var toIgnore = 0
+        for t in tokens {
+            if t.type == .LabelDefinition || t.type == .Directive {
+                toIgnore += 1
+            }
+        }
+        return toIgnore
+    }
+    
+    func getMemContents(_ address: Int, _ l: Line)-> String {
+        var memContents = ""
+        if address >= length {return "\n"}
+        for n in 0..<l.tokens.count {
+            switch l.tokens[n].type {
+            case .ImmediateString:
+                for i in 0..<mem[address] {
+                    if i <= 3 {
+                        memContents += " \(mem[address + i])"
+                    }
+                }
+            case .ImmediateTuple:
+                for i in 0..<4 {
+                    memContents += " \(mem[address + i])"
+                }
+            case .ImmediateInteger:
+                memContents += " \(mem[address + n - getIgnore(l.tokens)])"
+            case .Label:
+                if l.chunks[0] != ".start" {
+                    memContents += " \(mem[address + n - getIgnore(l.tokens)])"
+                }
+            case .Instruction:
+                memContents += " \(mem[address + n - getIgnore(l.tokens)])"
+            case .Register:
+                memContents += " \(mem[address + n - getIgnore(l.tokens)])"
+            default: print("", terminator: "")
+            }
+        }
+        return "\(memContents)"
+    }
+    
+    func printLst() {
+        var toPrint = ""
+        var memLocation = 0
+        var memContents = " "
+        for l in lines {
+            //must getMemContents before changing memLocation since memLocation when printed
+            memContents = getMemContents(memLocation, l)
+            toPrint += support.buffer("\(memLocation): \(memContents)", 23) + l.lineText + "\n"
+            for i in 0..<l.tokens.count {
+                switch l.tokens[i].type {
+                case .ImmediateString: memLocation += l.chunks[i].count - 1
+                case .ImmediateTuple: memLocation += 5
+                case .ImmediateInteger: memLocation += 1
+                case .Label:
+                    if l.chunks[i - 1] != ".start" {memLocation += 1}
+                case .Instruction: memLocation += 1
+                case .Register: memLocation += 1
+                default: memLocation += 0
+                }
+            }
+        }
+        print(toPrint)
     }
 }
