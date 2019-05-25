@@ -1,167 +1,200 @@
 Printing /users/Nicholas/Desktop/TuringMachine.lst: 
-Tuple01:  .tuple \0 _ 0 _ 1\ ; mem[0-6]
-..........Improper syntax for tuple
-Tuple02:  .tuple \0 1 1 0 1\ ; mem[7-13]
-..........Improper syntax for tuple
-Tuple03:  .tuple \0 0 1 1 1\ ; mem[14-20]
-..........Improper syntax for tuple
-Tuple04:  .tuple \1 0 1 1 1\ ; mem[21-27]
-..........Improper syntax for tuple
-Tuple05:  .tuple \1 1 1 0 1\ ; mem[28-34]
-..........Improper syntax for tuple
-tape:  .String "_010101_" ; mem[35-43]
-tapeStart:  .Integer #36 ; not 35 since that holds length of tape
-tapeLength:  .Integer #8
-numTuples:  .Integer #5
-currentState:  .Integer #0
-tapeInitialHead:  .Integer #0
-welcomeLine:  .String "Welcome to Turing!"
-tuplesIntro:  .String "Tuples:"
-initialStateIntro:  .String "Initial State: "
-initialHeadIntro:  .String "Initial Tape Head: "
-initialTapeIntro:  .String "Initial Tape: "
-completionMessage:  .String "Turing run complete"
-finalTapeOutro:  .String "Final Tape: "
-thatTook:  .String "That took "
-steps:  .String " steps"
-findTuple: jsr getTupleAddress ; memory address of the tuple is in r0, pointing to \
-	addir #1 r0 ; r0 now pointing to the cs of the tuple
-	movxr r0 r1 ; r1 contains cs of the tuple
-	cmpmr currentState r1
-	jmpz checkic ; if the current states match, then the ic comparison is next
-	jmp nextTuple ; tuple cs does not match, move to next tuple comparison
-	
-nextTuple: addir #1 r4 ; tuple number increased by 1
-	movmr numTuples r5
-	addir #1 r5
-	cmprr r5 r4 ; to see if all tuples have been checked
-	jmpz end
-	jmp  findTuples
-checkic: addir #1 r0 ; r0 points to ic of the tuple
-	movxr r2 r3 ; r3 has specific character of the tape
-	movxr r0 r1 ; r1 has ic of the tuple
-	cmprr r1 r3 ; compares character of tape with ic of tuple
-	jmpz executeTuple ; executes tuple if cs and ic match
-	jmp nextTuple
-; tupleAddress = 7(tupleNumber - 1)
-getTupleAddress: movrr r4 r0
-	subir #1 r0
-	mulir #7 r0
-	ret
-executeTuple: addir #1 r9 ; r9 has number of steps
-	jsr printTrace
-	outci #10
-	addir #1 r0 ; tupleAddress now points to ns
-	movxr r0 r1 ; ns in r1
-	movrm r1 currentState ; currentState now set to the tuple’s ns
-	addir #1 r0 ; tupleAddress now points to oc
-	movxx r1 r2 ; tape character becomes tuple’s oc
-	jmp executeDirection
-executeDirection: addir #1 r0 ; tuple address now points to di
-	movxr r0 r1 ; di in r1, note that 1 is right, -1 is left
-	cmpir #0 r1
-	jmpp goLeft ; goes left if r1 is -1, or left
-	jmpn goRight ; goes right if r1 is 1, or right
-goLeft: subir #1 r2 ; tapePointer moved to the left
-	jmp checkEndTape
-goRight: addir #1 r2 ; tapePointer moved to the right
-	jmp checkEndTape
-;tapePointer is out of tape if <= 35 or >= 44
-checkEndTape: movmr tapeStart r3
-	subir #1 r3 ; r3 should now contain the first out of tape to the left address
-	cmprr r2 r3 ; r2 holds tapePointer
-	jmpz end
-	addir #1 r3
-	addmr tapeLength r3 ; r3 should now hold the first memory address past tape
-	cmprr r2 r3
-	jmpz end ; if it goes past this then not at end of tape, go back to searching tuples
-	movir #1 r4 ; start with checking tuple01
-	jmp findTuple
-printIntroMess: outs welcomeLine ; "Welcome to Turing!"
-	outci #10 ; new line
-	outci #10 
-	outs tuplesIntro ; "Tuples:"
-	outci #10
-	jsr printTuples
-	outci #10
-	outs initialStateIntro ; "Initial State: "
-	movmr currentState r5
-	printi r5
-	outci #10
-	outs initialHeadIntro ; "Initial Tape Head: "
-	movmr tapeInitialHead r5
-	printi r5
-	outci #10
-	outs initialTapeIntro ; "Initial Tape: "
-	outs tape
-	outci #10
-	outci #10
-	ret
-printTuples: jsr getTupleAddress ; tuple address now in r0
-	jsr printTuple
-	outci #32 ; new line for next tuple
-	addir #1 r4 ; next tuple number
-	movmr numTuples r5
-	addir #1 r5
-	cmprr r5 r4 ; sees if this was the last tuple
-	jmpp printTuples
-	ret
-run: movmr tapeStart r2 ; tape pointer is in r2
-	addmr tapeInitialHead r2 ; r2 is adjusted with head
-	movir #1 r4 ; set tuple number to 1
-	jsr printIntroMess
-	movir #1 r4 ; reset tuple number to 1 since it was modified in printTuples
-	jmp findTuple
-;tupleNumber in r4, tapePointer in r2, first tape char address in r3 for first call
-printTrace: cmprr r2 r3 ; 
-	jmpz brackets ; if same then brackets
-	outcx r3 ; else print normally
-	addir #1 r3 ; next char address
-	movmr tapeStart r5
-	addmr tapeLength r5 ; now r5 holds first out of tape address
-	cmprr r3 r5
-	jmpn printTrace ; if not equal then still more of tape to print
-	jsr printTuple ; else move onto printing the associated tuple for execution
-	ret
-brackets: outci #91 ; “[”
-	outcx r3 ; “\(tapeChar)”
-	outci #93 ; “]”
-	addir #1 r3
-	movmr tapeStart r5
-	addmr tapeLength r5 ; now r5 holds first out of tape address
-	cmprr r3 r5
-	jmpn printTrace
-	jsr printTuple
-	ret
-printTuple: jsr getTupleAddress
-	addir #1 r0 ; r0 has cs address
-	movxr r0 r1
-	printi r1
-	outci #32 ; space
-	addir #1 r0 ; r0 has ic address
-	movxr r0 r1 
-	outcr r1 
-	outci #32 
-	addir #1 r0 ; r0 has ns address
-	movxr r0 r1
-	printi r1
-	outci #32 
-	addir #1 r0 ; r0 has oc address
-	movxr r0 r1
-	outcr r1
-	outci #32 
-	addir #1 r0 ; r0 has di address
-	movxr r0 r1
-	printi r1 
-	ret
-end: outs completionMessage ; “Turing run complete”
-	outci #10
-	outs finalTapeOutro ; “Final Tape: ”
-	outs tape
-	outci #10
-	outs thatTook ; “That took ”
-	printi r9 
-	outs steps ; “ steps”
-	halt	
-..........No definition for symbol findtuples
+0:                   
+0:                   ;take note that each .tuple takes up 7 memory locations
+0: 0 95 0 95         Tuple01:  .tuple \0 _ 0 _ r\ ; mem[0-4]
+5: 0 49 1 48         Tuple02:  .tuple \0 1 1 0 r\ ; mem[5-9]
+10: 0 48 1 49        Tuple03:  .tuple \0 0 1 1 r\ ; mem[10-14]
+15: 1 48 1 49        Tuple04:  .tuple \1 0 1 1 r\ ; mem[15-19]
+20: 1 49 1 48        Tuple05:  .tuple \1 1 1 0 r\ ; mem[20-24]
+25: 8 95 48 49       tape:  .String "_010101_" ; mem[25-33]
+34: 26               tapeStart:  .Integer #26 ; not 25 since that holds length of tape
+35: 8                tapeLength:  .Integer #8
+36: 5                numTuples:  .Integer #5
+37: 0                currentState:  .Integer #0
+38: 0                tapeInitialHead:  .Integer #0
+39: 18 87 101 108    welcomeLine:  .String "Welcome to Turing!"
+58: 7 84 117 112     tuplesIntro:  .String "Tuples:"
+66: 15 73 110 105    initialStateIntro:  .String "Initial State: "
+82: 19 73 110 105    initialHeadIntro:  .String "Initial Tape Head: "
+102: 14 73 110 105   initialTapeIntro:  .String "Initial Tape: "
+117: 19 84 117 114   completionMessage:  .String "Turing run complete"
+137: 12 70 105 110   finalTapeOutro:  .String "Final Tape: "
+150: 10 84 104 97    thatTook:  .String "That took "
+161: 6 32 115 116    steps:  .String " steps"
+168: 39 212          findTuple: jsr getTupleAddress ; memory address of the tuple is in r0, pointing to cs
+170: 9 0 1           	movxr r0 r1 ; r1 contains cs of the tuple
+173: 35 37 1         	cmpmr currentState r1
+176: 37 196          	jmpz checkic ; if the current states match, then the ic comparison is next
+178: 28 180          	jmp nextTuple ; tuple cs does not match, move to next tuple comparison
+180:                 	
+180: 12 1 4          nextTuple: addir #1 r4 ; tuple number increased by 1
+183: 8 36 5          	movmr numTuples r5
+186: 12 1 5          	addir #1 r5
+189: 34 5 4          	cmprr r5 r4 ; to see if all tuples have been checked
+192: 37 477          	jmpz end
+194: 28 168          	jmp findTuple
+196: 12 1 0          checkic: addir #1 r0 ; r0 points to ic of the tuple
+199: 9 2 3           	movxr r2 r3 ; r3 has specific character of the tape
+202: 9 0 1           	movxr r0 r1 ; r1 has ic of the tuple
+205: 34 1 3          	cmprr r1 r3 ; compares character of tape with ic of tuple
+208: 37 222          	jmpz executeTuple ; executes tuple if cs and ic match
+210: 28 180          	jmp nextTuple
+212:                 ; tupleAddress = 5(tupleNumber - 1)
+212: 6 4 0           getTupleAddress: movrr r4 r0
+215: 16 1 0          	subir #1 r0
+218: 20 5 0          	mulir #5 r0
+221: 40              	ret
+222: 12 1 9          executeTuple: addir #1 r9 ; r9 has number of steps
+225: 8 34 3          	movmr tapeStart r3 ; necessary for trace
+228: 39 380          	jsr printTrace
+230: 44 10           	outci #10
+232: 16 3 0          	subir #3 r0 ; to accommodate for r0 shift in printTrace
+235: 12 1 0          	addir #1 r0 ; r0 has ns address
+238: 9 0 1           	movxr r0 r1 ; ns in r1
+241: 7 1 37          	movrm r1 currentState ; currentState now set to the tuple’s ns
+244: 12 1 0          	addir #1 r0 ; r0 has oc address
+247: 54 0 2          	movxx r0 r2 ; tape character becomes tuple’s oc
+250: 28 252          	jmp executeDirection
+252: 12 1 0          executeDirection: addir #1 r0 ; tuple address now points to di
+255: 9 0 1           	movxr r0 r1 ; di in r1, note that 1 is right, -1 is left
+258: 33 0 1          	cmpir #0 r1
+261: 38 265          	jmpp goLeft ; goes left if r1 is -1, or left
+263: 36 270          	jmpn goRight ; goes right if r1 is 1, or right
+265: 16 1 2          goLeft: subir #1 r2 ; tapePointer moved to the left
+268: 28 275          	jmp checkEndTape
+270: 12 1 2          goRight: addir #1 r2 ; tapePointer moved to the right
+273: 28 275          	jmp checkEndTape
+275:                 ;tapePointer is out of tape if <= 35 or >= 44
+275: 8 34 3          checkEndTape: movmr tapeStart r3
+278: 16 1 3          	subir #1 r3 ; r3 should now contain the first out of tape to the left address
+281: 34 2 3          	cmprr r2 r3 ; r2 holds tapePointer
+284: 37 477          	jmpz end
+286: 12 1 3          	addir #1 r3
+289: 14 35 3         	addmr tapeLength r3 ; r3 should now hold the first memory address past tape
+292: 34 2 3          	cmprr r2 r3
+295: 37 477          	jmpz end ; if it goes past this then not at end of tape, go back to searching tuples
+297: 5 1 4           	movir #1 r4 ; start with checking tuple01
+300: 28 168          	jmp findTuple
+302: 55 39           printIntroMess: outs welcomeLine ; “Welcome to Turing!”
+304: 44 10           	outci #10 ; new line
+306: 44 10           	outci #10 
+308: 55 58           	outs tuplesIntro ; “Tuples:”
+310: 44 10           	outci #10
+312: 39 343          	jsr printTuples
+314: 44 10           	outci #10
+316: 55 66           	outs initialStateIntro ; “Initial State: ”
+318: 8 37 5          	movmr currentState r5
+321: 49 5            	printi r5
+323: 44 10           	outci #10
+325: 55 82           	outs initialHeadIntro ; “Initial Tape Head: ”
+327: 8 38 5          	movmr tapeInitialHead r5
+330: 49 5            	printi r5
+332: 44 10           	outci #10
+334: 55 102          	outs initialTapeIntro ; “Initial Tape: ”
+336: 55 25           	outs tape
+338: 44 10           	outci #10
+340: 44 10           	outci #10
+342: 40              	ret
+343: 39 212          printTuples: jsr getTupleAddress ; tuple address now in r0
+345: 39 429          	jsr printTuple
+347: 44 10           	outci #10 ; new line for next tuple
+349: 12 1 4          	addir #1 r4 ; next tuple number
+352: 8 36 5          	movmr numTuples r5
+355: 12 1 5          	addir #1 r5
+358: 34 5 4          	cmprr r5 r4 ; sees if this was the last tuple
+361: 38 343          	jmpp printTuples
+363: 40              	ret
+364: 8 34 2          run: movmr tapeStart r2 ; tape pointer is in r2
+367: 14 38 2         	addmr tapeInitialHead r2 ; r2 is adjusted with head
+370: 5 1 4           	movir #1 r4 ; set tuple number to 1
+373: 39 302          	jsr printIntroMess
+375: 5 1 4           	movir #1 r4 ; reset tuple number to 1 since it was modified in printTuples
+378: 28 168          	jmp findTuple
+380:                 ;tupleNumber in r4, tapePointer in r2, first tape char address in r3 for first call
+380: 34 2 3          printTrace: cmprr r2 r3 ; 
+383: 37 406          	jmpz brackets ; if same then brackets
+385: 46 3            	outcx r3 ; else print normally
+387: 12 1 3          	addir #1 r3 ; next char address
+390: 8 34 5          	movmr tapeStart r5
+393: 14 35 5         	addmr tapeLength r5 ; now r5 holds first out of tape address
+396: 34 3 5          	cmprr r3 r5
+399: 36 380          	jmpn printTrace ; if not equal then still more of tape to print
+401: 44 32           	outci #32
+403: 39 429          	jsr printTuple ; else move onto printing the associated tuple for execution
+405: 40              	ret
+406: 44 91           brackets: outci #91 ; “[”
+408: 46 3            	outcx r3 ; “\(tapeChar)”
+410: 44 93           	outci #93 ; “]”
+412: 12 1 3          	addir #1 r3
+415: 8 34 5          	movmr tapeStart r5
+418: 14 35 5         	addmr tapeLength r5 ; now r5 holds first out of tape address
+421: 34 3 5          	cmprr r3 r5
+424: 36 380          	jmpn printTrace
+426: 39 429          	jsr printTuple
+428: 40              	ret
+429: 39 212          printTuple: jsr getTupleAddress ; r0 now has cs address
+431: 9 0 1           	movxr r0 r1
+434: 49 1            	printi r1
+436: 44 32           	outci #32 ; space
+438: 12 1 0          	addir #1 r0 ; r0 has ic address
+441: 9 0 1           	movxr r0 r1 
+444: 45 1            	outcr r1 
+446: 44 32           	outci #32 
+448: 12 1 0          	addir #1 r0 ; r0 has ns address
+451: 9 0 1           	movxr r0 r1
+454: 49 1            	printi r1
+456: 44 32           	outci #32 
+458: 12 1 0          	addir #1 r0 ; r0 has oc address
+461: 9 0 1           	movxr r0 r1
+464: 45 1            	outcr r1
+466: 44 32           	outci #32 
+468: 12 1 0          	addir #1 r0 ; r0 has di address
+471: 9 0 1           	movxr r0 r1
+474: 49 1            	printi r1 
+476: 40              	ret
+477: 55 117          end: outs completionMessage ; “Turing run complete”
+479: 44 10           	outci #10
+481: 55 137          	outs finalTapeOutro ; “Final Tape: ”
+483: 55 25           	outs tape
+485: 44 10           	outci #10
+487: 55 150          	outs thatTook ; “That took ”
+489: 49 9            	printi r9 
+491: 55 161          	outs steps ; “ steps”
 
+Symbol Table:
+goright 270 
+thattook 150 
+tapelength 35 
+tuple03 10 
+initialtapeintro 102 
+printtuple 429 
+findtuple 168 
+tuple01 0 
+tapestart 34 
+tuplesintro 58 
+executetuple 222 
+completionmessage 117 
+printtuples 343 
+printtrace 380 
+tape 25 
+tuple05 20 
+brackets 406 
+numtuples 36 
+printintromess 302 
+goleft 265 
+initialstateintro 66 
+run 364 
+finaltapeoutro 137 
+tuple02 5 
+tapeinitialhead 38 
+gettupleaddress 212 
+executedirection 252 
+end 477 
+nexttuple 180 
+tuple04 15 
+initialheadintro 82 
+welcomeline 39 
+steps 161 
+currentstate 37 
+checkic 196 
+checkendtape 275 
