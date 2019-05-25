@@ -1,75 +1,46 @@
+//
+//  Assembler.swift
+//  Simple Assembly Program
+//
+//  Created by Joshua Shen on 5/19/19.
+//  Copyright © 2019 Joshua Shen. All rights reserved.
+//
+
 import Foundation
 
 struct Assembler{
-    var programName = "turing"
-    var lines = [Line]()
-    var legalProgram = false
-    var start = 0
-    var length = 0
-    var mem = [Int]()
+    var program: Program? = nil
+    
     var instructionArgs: [String: [TokenType]] = [:]
     var directiveArgs: [String : [TokenType]] = [:]
-    var symVal: [String: Int] = [:]
-    
     let support = Support()
     var userInput = ""
     init() {fillDictionary()}
     
-    func help(){
-        var toPrint = "SAP Help:"
-        toPrint += "\n    asm <program name> - assemble the specified program"
-        toPrint += "\n    run <program name> - run the specified program"
-        toPrint += "\n    path <path specification> - set the path for the SAP program directory include final / but not name of file. SAP file must have an extension of .txt"
-        toPrint += "\n    printlst <program name> - print listing file for the specified program"
-        toPrint += "\n    printbin <program name> - print binary file for the specified program"
-        toPrint += "\n    help - print this help menu"
-        toPrint += "\n    quit - quit virtual machine"
-        print(toPrint)
-    }
-    mutating func run(){
-        help()
-        print("> ", terminator: "")
-        userInput = readLine()!
-        var splitCommands = support.splitStringIntoParts(userInput)
-        while userInput != "quit"{
-            splitCommands = support.splitStringIntoParts(userInput)
-            switch splitCommands[0]{
-            case "asm": assemble(splitCommands[1])
-            case "run": print("")
-            case "path": print("")
-            case "printlst":print("")
-            case "printbin": for b in vm.binary{
-                print(b)
-                }
-            case "help": help()
-            default: print("Error - not a valid command. Please type again carefully.")
-            }
-            userInput = readLine()!
+    
+    mutating func read()-> Bool {
+        if support.readTextFile(program!.path).fileText == nil {
+            print(support.readTextFile(program!.path).message!)
+            return false
         }
-        print("...Assembler exited.")
-        
-    }
-    mutating func read(_ path: String) {
-        if support.readTextFile(path).fileText == nil {
-            print(support.readTextFile(path).message!)
-            return
-        }
-        let fileContent = support.readTextFile(path).fileText!
+        let fileContent = support.readTextFile(program!.path).fileText!
         let inputCode = support.splitStringIntoLines(fileContent)
         for i in 0..<inputCode.count {
             //print("\(i + 1)     \(inputCode[i])")
             if inputCode[i].count > 0 {
-                lines.append(Line(i + 1, inputCode[i]))
+                program!.lines.append(Line(i + 1, inputCode[i]))
             }
         }
-        print("...SAP file reading complete")
+        return true
     }
     
     
     mutating func assemble(_ path: String) {
-        passOne(path)
-        print("pass two successful")
+        program = Program(path)
+        passOne()
+        if !program!.legal {print("...Assembly was unsuccessful"); return}
         passTwo()
+        print("...Assembly was successful")
     }
     
     mutating func fillDictionary() {
@@ -138,21 +109,27 @@ struct Assembler{
     }
     
     func printSymVal() {
-        for (k, _) in symVal {print("\(k) \(symVal[k]!)")}
+        if program == nil {print("Please assemble a program first"); return}
+        print("Symbol table: \n")
+        for (k, _) in program!.symVal {
+            print("\(support.buffer(removeColon(k), 22)) \(program!.symVal[k]!)")
+        }
+    }
+    func removeColon(_ labelDef: String)-> String {
+        return String(labelDef.dropLast(1))
     }
 }
 
 // PASS ONE
 extension Assembler{
     //passOne makes symVal and checks for legality
-    mutating func passOne(_ path: String) {
-        read(path)
-        legalProgram = true
-        makeSymVal(lines)
-        printSymVal()
-        for l in lines {
+    mutating func passOne() {
+        if !read() {return}
+        program!.legal = true
+        makeSymVal(program!.lines)
+        for l in program!.lines {
             print(l, terminator: "")
-            if !isLegal(l).0 {legalProgram = false}
+            if !isLegal(l).0 {program!.legal = false}
             print(isLegal(l).1)
         }
     }
@@ -162,7 +139,7 @@ extension Assembler{
         for l in lines {
             for i in 0..<l.tokens.count {
                 switch l.tokens[i].type {
-                case .LabelDefinition: symVal[l.chunks[i]] = memLocation
+                case .LabelDefinition: program!.symVal[l.chunks[i]] = memLocation
                 case .ImmediateInteger: memLocation += 1
                 case .ImmediateString: memLocation += l.chunks[i].count - 1
                 case .ImmediateTuple: memLocation += 5
@@ -218,30 +195,37 @@ extension Assembler{
     }
     
     func labelExists(_ label: String)-> Bool {
-        return symVal[label + ":"] != nil
+        return program!.symVal[label + ":"] != nil
     }
 }
 
 // PASS TWO
 extension Assembler {
-    // pass two makes binary and list files
+    // pass two makes translates assembly to binary
     mutating func passTwo() {
-        if !legalProgram {return}
+        if !program!.legal {return}
         translate()
-        printLst()
+    }
+    
+    func printBin() {
+        if program == nil {print("Please assemble a program first"); return}
+        print(program!.length)
+        print(program!.start)
+        for i in 0..<program!.mem.count {print("\(program!.mem[i])")}
+        print("\n\n\n")
     }
     
     mutating func translate() {
-        mem = [Int]()
-        for l in lines {
+        program!.mem = [Int]()
+        for l in program!.lines {
             for i in 0..<l.tokens.count {
                 switch l.tokens[i].type {
-                case .Register: mem.append(Translator.registers[l.chunks[i]]!)
-                case .ImmediateString: for b in translateString(l.tokens[i].stringValue!) {mem.append(b)}
-                case .ImmediateInteger: mem.append(l.tokens[i].intValue!)
-                case .ImmediateTuple: for b in translateTuple(l.tokens[i]) {mem.append(b)}
-                case .Instruction: mem.append(Translator.instructions[l.chunks[i]]!)
-                case .Label: mem.append(symVal[l.chunks[i] + ":"]!)
+                case .Register: program!.mem.append(Translator.registers[l.chunks[i]]!)
+                case .ImmediateString: for b in translateString(l.tokens[i].stringValue!) {program!.mem.append(b)}
+                case .ImmediateInteger: program!.mem.append(l.tokens[i].intValue!)
+                case .ImmediateTuple: for b in translateTuple(l.tokens[i]) {program!.mem.append(b)}
+                case .Instruction: program!.mem.append(Translator.instructions[l.chunks[i]]!)
+                case .Label: program!.mem.append(program!.symVal[l.chunks[i] + ":"]!)
                 case .Directive: print("", terminator: "") //does nothing
                 case .LabelDefinition: print("", terminator: "") //does nothing
                 default: print("this should never be printed as pass one should vet for legality")
@@ -250,12 +234,9 @@ extension Assembler {
         }
         //.start location already at beginning due to label locations
         //being put into memory whenever they are encountered
-        start = mem[0]
-        length = mem.count - 1
-        mem.remove(at: 0)
-        print(length)
-        print(start)
-        for i in 0..<mem.count {print("\(i): \(mem[i])")}
+        program!.start = program!.mem[0]
+        program!.length = program!.mem.count - 1
+        program!.mem.remove(at: 0)
     }
     // \0 _ 0 _ r\
     mutating func translateTuple(_ token: Token)->[Int] {
@@ -290,29 +271,29 @@ extension Assembler {
     
     func getMemContents(_ address: Int, _ l: Line)-> String {
         var memContents = ""
-        if address >= length {return "\n"}
+        if address >= program!.length {return "\n"}
         for n in 0..<l.tokens.count {
             switch l.tokens[n].type {
             case .ImmediateString:
-                for i in 0..<mem[address] {
+                for i in 0..<program!.mem[address] {
                     if i <= 3 {
-                        memContents += " \(mem[address + i])"
+                        memContents += " \(program!.mem[address + i])"
                     }
                 }
             case .ImmediateTuple:
                 for i in 0..<4 {
-                    memContents += " \(mem[address + i])"
+                    memContents += " \(program!.mem[address + i])"
                 }
             case .ImmediateInteger:
-                memContents += " \(mem[address + n - getIgnore(l.tokens)])"
+                memContents += " \(program!.mem[address + n - getIgnore(l.tokens)])"
             case .Label:
                 if l.chunks[0] != ".start" {
-                    memContents += " \(mem[address + n - getIgnore(l.tokens)])"
+                    memContents += " \(program!.mem[address + n - getIgnore(l.tokens)])"
                 }
             case .Instruction:
-                memContents += " \(mem[address + n - getIgnore(l.tokens)])"
+                memContents += " \(program!.mem[address + n - getIgnore(l.tokens)])"
             case .Register:
-                memContents += " \(mem[address + n - getIgnore(l.tokens)])"
+                memContents += " \(program!.mem[address + n - getIgnore(l.tokens)])"
             default: print("", terminator: "")
             }
         }
@@ -320,10 +301,11 @@ extension Assembler {
     }
     
     func printLst() {
+        if program == nil {print("Please assemble a program first"); return}
         var toPrint = ""
         var memLocation = 0
         var memContents = " "
-        for l in lines {
+        for l in program!.lines {
             //must getMemContents before changing memLocation since memLocation when printed
             memContents = getMemContents(memLocation, l)
             toPrint += support.buffer("\(memLocation): \(memContents)", 23) + l.lineText + "\n"
@@ -343,3 +325,4 @@ extension Assembler {
         print(toPrint)
     }
 }
+
