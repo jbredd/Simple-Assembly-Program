@@ -1,20 +1,14 @@
 //
 //  FullVM.swift
-//  PartialVM
+//  Simple Assembly Program
 //
-//  Created by Nicholas Hatzis-Schoch on 4/6/19.
-//  Copyright © 2019 Slick Games. All rights reserved.
+//  Created by Joshua Shen on 3/26/19.
+//  Copyright © 2019 Joshua Shen. All rights reserved.
 //
-
 import Foundation
 
 struct FullVM {
-    //runs the assembly binary code for the Doubles Program
     var instructionPointer = 0
-    var memory = Array(repeating: 0, count: 1000)
-    var binary = [0]
-    var size = 0
-    var startAddress = 0
     var registers = Array(repeating: 0, count: 10)
     var statusFlag = StatusFlag()
     
@@ -22,6 +16,8 @@ struct FullVM {
     let support = Support()
     var userInput = ""
     var wasCrashed = false
+    var assembler = Assembler()
+    var pathSpecs = ""
     
     var stackRegister: Int {
         if stack.isEmpty() {return 2}
@@ -31,11 +27,11 @@ struct FullVM {
     var console: String = ""
     var retTo = [Int]()
     
-    
+
     init() {}
     
     mutating func run() {
-        print("Welcome to the binary to ouput virtual machine!")
+        print("Welcome to SAP!")
         help()
         print(">", terminator: "")
         userInput = readLine()!
@@ -43,14 +39,26 @@ struct FullVM {
             var splitInput = support.splitStringIntoParts(userInput)
             switch splitInput[0] {
             //for each case first the number of arguments is checked and then whether the type of the argument is as expected
-            case "read":
-                if numArgs(splitInput) != 1 {print("The command 'read' takes in 1 argument, you put in \(numArgs(splitInput)). Please type again carefully\n"); break}
-                read(splitInput[1])
+            case "asm":
+                if numArgs(splitInput) != 1 {print("The command 'run' asm in 1 argument, you put in \(numArgs(splitInput)). Please type again carefully\n"); break};
+                assembler.assemble(pathSpecs + splitInput[1] + ".txt")
             case "run":
                 if numArgs(splitInput) != 0 {print("The command 'run' takes in 0 arguments, you put in \(numArgs(splitInput)). Please type again carefully\n"); break};
                 executeBinary()
                 if wasCrashed {print("\n...Binary execution unsuccessful")}
                 else {print("\n...Binary execution successful")}
+            case "path":
+                if numArgs(splitInput) != 1 {print("The command 'path' takes in 1 argument, you put in \(numArgs(splitInput)). Please type again carefully\n"); break};
+                pathSpecs = splitInput[1]
+            case "printlst":
+                if numArgs(splitInput) != 0 {print("The command 'printlst' takes in 0 arguments, you put in \(numArgs(splitInput)). Please type again carefully\n"); break};
+                assembler.printLst()
+            case "printbin":
+                if numArgs(splitInput) != 0 {print("The command 'printbin' takes in 0 arguments, you put in \(numArgs(splitInput)). Please type again carefully\n"); break};
+                assembler.printBin()
+            case "printsym":
+                if numArgs(splitInput) != 0 {print("The command 'printbin' takes in 0 arguments, you put in \(numArgs(splitInput)). Please type again carefully\n"); break};
+                assembler.printSymVal()
             case "help":
                 if numArgs(splitInput) != 0 {print("The command 'help' takes in 0 arguments, you put in \(numArgs(splitInput)). Please type again carefully\n"); break}
                 help()
@@ -59,84 +67,87 @@ struct FullVM {
                 return
             default: print("'\(userInput)' is an invalid command. Please type again carefully\n")
             }
-            print(">", terminator: "")
+            print("\n>", terminator: "")
             userInput = readLine()!
         }
     }
     
     mutating func executeBinary() {
+        /*
         for i in 0..<memory.count {
             print("\(i):   \(memory[i])")
-        }
-        instructionPointer = startAddress
+        }*/
+        if assembler.program == nil {print("Please assemble a program first"); return}
+        let p = assembler.program!
+        instructionPointer = p.start
         while(pointerIsInMemoryBounds()) {
             if wasCrashed == true {return}
-            switch memory[instructionPointer] {
+            switch p.mem[instructionPointer] {
             case 0: wasCrashed = false;
             /*
-             for i in 0..<memory.count {
-             print("\(i):   \(memory[i])")
-             }*/
-            return //halt
-            case Instruction.clrr.rawValue: clrr(memory[instructionPointer + 1])
-            case Instruction.clrx.rawValue: clrx(memory[instructionPointer + 1])
-            case Instruction.clrm.rawValue: clrm(memory[instructionPointer + 1])
-            case Instruction.clrb.rawValue: clrb(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.movir.rawValue: movir(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.movrr.rawValue: movrr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.movrm.rawValue: movrm(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.movmr.rawValue: movmr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.movxr.rawValue: movxr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.movar.rawValue: movar(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.movb.rawValue: movb(memory[instructionPointer + 1], memory[instructionPointer + 2], memory[instructionPointer + 3])
-            case Instruction.addir.rawValue: addir(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.addrr.rawValue: addrr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.addmr.rawValue: addmr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.addxr.rawValue: addxr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.subir.rawValue: subir(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.subrr.rawValue: subrr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.submr.rawValue: submr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.subxr.rawValue: subxr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.mulir.rawValue: mulir(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.mulrr.rawValue: mulrr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.mulmr.rawValue: mulmr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.mulxr.rawValue: mulxr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.divir.rawValue: divir(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.divrr.rawValue: divrr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.divmr.rawValue: divmr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.divxr.rawValue: divxr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.jmp.rawValue: jmp(memory[instructionPointer + 1])
-            case Instruction.sojz.rawValue: sojz(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.sojnz.rawValue: sojnz(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.aojz.rawValue: aojz(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.aojnz.rawValue: aojnz(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.cmpir.rawValue: cmpir(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.cmprr.rawValue: cmprr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.cmpmr.rawValue: cmpmr(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.jmpn.rawValue: jmpn(memory[instructionPointer + 1])
-            case Instruction.jmpz.rawValue: jmpz(memory[instructionPointer + 1])
-            case Instruction.jmpp.rawValue: jmpp(memory[instructionPointer + 1])
-            case Instruction.jsr.rawValue: jsr(memory[instructionPointer + 1])
-            case Instruction.ret.rawValue: ret()
-            case Instruction.push.rawValue: push(memory[instructionPointer + 1])
-            case Instruction.pop.rawValue: pop(memory[instructionPointer + 1])
-            case Instruction.stackc.rawValue: stackc(memory[instructionPointer + 1])
-            case Instruction.outci.rawValue: outci(memory[instructionPointer + 1])
-            case Instruction.outcr.rawValue: outcr(memory[instructionPointer + 1])
-            case Instruction.outcx.rawValue: outcx(memory[instructionPointer + 1])
-            case Instruction.outcb.rawValue: outcb(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.readi.rawValue: readi(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.printi.rawValue: printi(memory[instructionPointer + 1])
-            case Instruction.readc.rawValue: readc(memory[instructionPointer + 1])
-            case Instruction.readln.rawValue: readln(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.brk.rawValue: brk()
-            case Instruction.movrx.rawValue: movrx(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.movxx.rawValue: movxx(memory[instructionPointer + 1], memory[instructionPointer + 2])
-            case Instruction.outs.rawValue: outs(memory[instructionPointer + 1])
-            case Instruction.nop.rawValue: nop()
-            case Instruction.jmpne.rawValue: jmpne(memory[instructionPointer + 1])
+                for i in 0..<memory.count {
+                    print("\(i):   \(memory[i])")
+                }*/
+                return //halt
+            case 1: clrr(p.mem[instructionPointer + 1])
+            case 2: clrx(p.mem[instructionPointer + 1])
+            case 3: clrm(p.mem[instructionPointer + 1])
+            case 4: clrb(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 5: movir(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 6: movrr(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 7: movrm(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 8: movmr(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 9: movxr(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 10: movar(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 11: movb(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2], p.mem[instructionPointer + 3])
+            case 12: addir(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 13: addrr(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 14: addmr(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 15: addxr(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 16: subir(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 17: subrr(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 18: submr(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 19: subxr(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 20: mulir(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 21: mulrr(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 22: mulmr(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 23: mulxr(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 24: divir(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 25: divrr(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 26: divmr(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 27: divxr(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 28: jmp(p.mem[instructionPointer + 1])
+            case 29: sojz(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 30: sojnz(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 31: aojz(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 32: aojnz(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 33: cmpir(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 34: cmprr(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 35: cmpmr(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 36: jmpn(p.mem[instructionPointer + 1])
+            case 37: jmpz(p.mem[instructionPointer + 1])
+            case 38: jmpp(p.mem[instructionPointer + 1])
+            case 39: jsr(p.mem[instructionPointer + 1])
+            case 40: ret()
+            case 41: push(p.mem[instructionPointer + 1])
+            case 42: pop(p.mem[instructionPointer + 1])
+            case 43: stackc(p.mem[instructionPointer + 1])
+            case 44: outci(p.mem[instructionPointer + 1])
+            case 45: outcr(p.mem[instructionPointer + 1])
+            case 46: outcx(p.mem[instructionPointer + 1])
+            case 47: outcb(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 48: readi(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 49: printi(p.mem[instructionPointer + 1])
+            case 50: readc(p.mem[instructionPointer + 1])
+            case 51: readln(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 52: brk()
+            case 53: movrx(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 54: movxx(p.mem[instructionPointer + 1], p.mem[instructionPointer + 2])
+            case 55: outs(p.mem[instructionPointer + 1])
+            case 56: nop()
+            case 57: jmpne(p.mem[instructionPointer + 1])
             default:
-                print("Error: Nonexistent instruction called, instruction # \(memory[instructionPointer]) does not exist")
+                print("Error: Nonexistent instruction called, instruction # \(p.mem[instructionPointer]) does not exist")
                 wasCrashed = true; return
             }
         }
@@ -151,29 +162,34 @@ struct FullVM {
 extension FullVM {
     func getString(_ labelAddress: Int)->String {
         var toReturn = ""
-        let stringLength = memory[labelAddress]
+        let stringLength = assembler.program!.mem[labelAddress]
         var pointer = labelAddress + 1
         
         for _ in 1...stringLength {
-            toReturn += String(support.unicodeValueToCharacter(memory[pointer]))
+            toReturn += String(support.unicodeValueToCharacter(assembler.program!.mem[pointer]))
             pointer += 1
         }
         return toReturn
     } //finds the string at a given memory address
     
     func pointerIsInMemoryBounds()-> Bool {
-        return (0 <= instructionPointer && instructionPointer < memory.count)
+        return (0 <= instructionPointer && instructionPointer < assembler.program!.mem.count)
     } //determines if the instructionPointer is pointing to an existing memory address
     
     func help() {
-        var toReturn = "Full Virtual Machine Help:"
-        toReturn += "\n    read <path> - read file and write its binary to memory"
-        toReturn += "\n    run - execute the binary"
-        toReturn += "\n    help - print this help menu"
-        toReturn += "\n    quit - quit virtual machine"
-        print(toReturn)
-    } //prints help menu
+            var toPrint = "SAP Help:"
+            toPrint += "\n    asm <program name> - assemble the specified program"
+            toPrint += "\n    run - run the last assembled program"
+            toPrint += "\n    path <path specification> - set the path for the SAP program directory include final / but not name of file. SAP file must have an extension of .txt"
+            toPrint += "\n    printlst - print listing file for the last assembled program"
+            toPrint += "\n    printbin - print binary file for the last assembled program"
+            toPrint += "\n    printsym - pring symbol table for the last assembled program"
+            toPrint += "\n    help - print this help menu"
+            toPrint += "\n    quit - quit virtual machine"
+            print(toPrint)
+    }
     
+    /* I THINK THIS MIGHT NOT BE NEEDED
     mutating func read(_ path: String) {
         if support.readTextFile(path).fileText == nil {
             print(support.readTextFile(path).message!)
@@ -195,8 +211,9 @@ extension FullVM {
         for n in 2..<binary.count { //binary[0] and binary[1] not part of memory
             memory[n - 2] = binary[n]
         }
+        
         print("...reading binary file complete")
-    }
+    }*/
     
     func numArgs(_ args: [String])-> Int {
         return args.count - 1
@@ -238,12 +255,12 @@ extension FullVM {
     }
     
     mutating func clrx(_ rIndex: Int) { //2
-        memory[registers[rIndex]] = 0
+        assembler.program!.mem[registers[rIndex]] = 0
         instructionPointer += 2
     }
     
     mutating func clrm(_ labelAddress: Int) { //3
-        memory[memory[labelAddress]] = 0
+        assembler.program!.mem[assembler.program!.mem[labelAddress]] = 0
         instructionPointer += 2
     }
     
@@ -253,7 +270,7 @@ extension FullVM {
         startAddress += 2
         
         for _ in 1...count {
-            memory[startAddress] = 0
+            assembler.program!.mem[startAddress] = 0
             startAddress += 1
         }
         instructionPointer += 3
@@ -270,18 +287,18 @@ extension FullVM {
     }
     
     mutating func movrm(_ rIndex: Int, _ labelAddress: Int) { //7
-        memory[labelAddress] = registers[rIndex]
+        assembler.program!.mem[labelAddress] = registers[rIndex]
         instructionPointer += 3
     }
     
     mutating func movmr(_ labelAddress: Int, _ rIndex: Int) { //8
-        let labelValue = memory[labelAddress]
+        let labelValue = assembler.program!.mem[labelAddress]
         registers[rIndex] = labelValue
         instructionPointer += 3
     }
     
     mutating func movxr(_ r1Index: Int, _ r2Index: Int) { //9
-        registers[r2Index] = memory[registers[r1Index]]
+        registers[r2Index] = assembler.program!.mem[registers[r1Index]]
         instructionPointer += 3
     }
     
@@ -296,7 +313,7 @@ extension FullVM {
         let count = registers[r3Index]
         
         for n in 0..<count {
-            memory[destination + n] = memory[source + n]
+            assembler.program!.mem[destination + n] = assembler.program!.mem[source + n]
         }
         instructionPointer += 4
     }
@@ -312,12 +329,12 @@ extension FullVM {
     }
     
     mutating func addmr(_ labelAddress: Int, _ rIndex: Int) { //14
-        registers[rIndex] += memory[labelAddress]
+        registers[rIndex] += assembler.program!.mem[labelAddress]
         instructionPointer += 3
     }
     
     mutating func addxr(_ r1Index: Int, _ r2Index: Int) { //15
-        registers[r2Index] += memory[registers[r1Index]]
+        registers[r2Index] += assembler.program!.mem[registers[r1Index]]
         instructionPointer += 3
     }
     
@@ -332,12 +349,12 @@ extension FullVM {
     }
     
     mutating func submr(_ labelAddress: Int, _ rIndex: Int) { //18
-        registers[rIndex] -= memory[labelAddress]
+        registers[rIndex] -= assembler.program!.mem[labelAddress]
         instructionPointer += 3
     }
     
     mutating func subxr(_ r1Index: Int, _ r2Index: Int) { //19
-        registers[r2Index] *= memory[registers[r1Index]]
+        registers[r2Index] *= assembler.program!.mem[registers[r1Index]]
         instructionPointer += 3
     }
     
@@ -352,12 +369,12 @@ extension FullVM {
     }
     
     mutating func mulmr(_ labelAddress: Int, _ rIndex: Int) { //22
-        registers[rIndex] *= memory[labelAddress]
+        registers[rIndex] *= assembler.program!.mem[labelAddress]
         instructionPointer += 3
     }
     
     mutating func mulxr(_ r1Index: Int, _ r2Index: Int) { //23
-        registers[r2Index] *= memory[registers[r1Index]]
+        registers[r2Index] *= assembler.program!.mem[registers[r1Index]]
         instructionPointer += 3
     }
     
@@ -372,12 +389,12 @@ extension FullVM {
     }
     
     mutating func divmr(_ labelAddress: Int, _ rIndex: Int) { //26
-        registers[rIndex] /= memory[labelAddress]
+        registers[rIndex] /= assembler.program!.mem[labelAddress]
         instructionPointer += 3
     }
     
     mutating func divxr(_ r1Index: Int, _ r2Index: Int) { //27
-        registers[r2Index] /= memory[registers[r1Index]]
+        registers[r2Index] /= assembler.program!.mem[registers[r1Index]]
         instructionPointer += 3
     }
     
@@ -437,8 +454,8 @@ extension FullVM {
     mutating func cmpmr(_ labelAddress: Int, _ rIndex: Int) { //35
         instructionPointer += 3
         let rIndex = registers[rIndex]
-        if memory[labelAddress] == rIndex {statusFlag.makeEqual(); return}
-        if memory[labelAddress] > rIndex {statusFlag.makeMoreThan(); return}
+        if assembler.program!.mem[labelAddress] == rIndex {statusFlag.makeEqual(); return}
+        if assembler.program!.mem[labelAddress] > rIndex {statusFlag.makeMoreThan(); return}
         statusFlag.makeLessThan()
     }
     
@@ -506,8 +523,8 @@ extension FullVM {
     }
     
     mutating func outcx(_ rIndex: Int) { //46
-        print(support.unicodeValueToCharacter(memory[registers[rIndex]]), terminator: "")
-        console += String(support.unicodeValueToCharacter(memory[registers[rIndex]]))
+        print(support.unicodeValueToCharacter(assembler.program!.mem[registers[rIndex]]), terminator: "")
+        console += String(support.unicodeValueToCharacter(assembler.program!.mem[registers[rIndex]]))
         instructionPointer += 2
     }
     
@@ -546,9 +563,9 @@ extension FullVM {
         let ln = consoleLines.last!
         var i = 1
         for c in ln {charactersUni.append(support.characterToUnicodeValue(c))}
-        memory[labelAddress] = ln.count
+        assembler.program!.mem[labelAddress] = ln.count
         while (i - 1) != ln.count{
-            memory[labelAddress + i] = charactersUni[i - 1]
+            assembler.program!.mem[labelAddress + i] = charactersUni[i - 1]
             i += 1
         }
         registers[rIndex] = ln.count
@@ -561,12 +578,12 @@ extension FullVM {
     }
     
     mutating func movrx(_ r1Index: Int, _ r2Index: Int) { //53
-        memory[registers[r2Index]] = registers[r1Index]
+        assembler.program!.mem[registers[r2Index]] = registers[r1Index]
         instructionPointer += 3
     }
     
     mutating func movxx(_ r1Index: Int, _ r2Index: Int) { //54
-        memory[registers[r2Index]] = memory[registers[r1Index]]
+        assembler.program!.mem[registers[r2Index]] = assembler.program!.mem[registers[r1Index]]
         instructionPointer += 3
     }
     
