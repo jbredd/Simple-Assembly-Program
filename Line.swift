@@ -1,3 +1,11 @@
+//
+//  Line.swift
+//  Simple Assembly Program
+//
+//  Created by Joshua Shen on 5/7/19.
+//  Copyright © 2019 Joshua Shen. All rights reserved.
+//
+
 import Foundation
 
 
@@ -11,7 +19,6 @@ struct Line: CustomStringConvertible {
         lineText = line
         self.number = number
         chunkinize(Array(line))
-        for i in 0..<chunks.count {chunks[i] = chunks[i].lowercased()}
         tokens = Tokenizer.tokenizeChunks(chunks)
     }
     
@@ -58,3 +65,8 @@ struct Line: CustomStringConvertible {
         return lineText
     }
 }
+
+
+
+
+
