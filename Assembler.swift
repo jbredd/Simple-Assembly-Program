@@ -13,18 +13,17 @@ struct Assembler{
     
     var instructionArgs: [String: [TokenType]] = [:]
     var directiveArgs: [String : [TokenType]] = [:]
-    let support = Support()
     var userInput = ""
     init() {fillDictionary()}
     
     
     mutating func read()-> Bool {
-        if support.readTextFile(program!.path).fileText == nil {
-            print(support.readTextFile(program!.path).message!)
+        if Support.readTextFile(program!.path).fileText == nil {
+            print(Support.readTextFile(program!.path).message!)
             return false
         }
-        let fileContent = support.readTextFile(program!.path).fileText!
-        let inputCode = support.splitStringIntoLines(fileContent)
+        let fileContent = Support.readTextFile(program!.path).fileText!
+        let inputCode = Support.splitStringIntoLines(fileContent)
         for i in 0..<inputCode.count {
             //print("\(i + 1)     \(inputCode[i])")
             if inputCode[i].count > 0 {
@@ -112,11 +111,8 @@ struct Assembler{
         if program == nil {print("Please assemble a program first"); return}
         print("Symbol table: \n")
         for (k, _) in program!.symVal {
-            print("\(support.buffer(removeColon(k), 22)) \(program!.symVal[k]!)")
+            print("\(Support.buffer(Support.removeColon(k), 22)) \(program!.symVal[k]!)")
         }
-    }
-    func removeColon(_ labelDef: String)-> String {
-        return String(labelDef.dropLast(1))
     }
 }
 
@@ -242,9 +238,9 @@ extension Assembler {
     mutating func translateTuple(_ token: Token)->[Int] {
         var binary = [Int]()
         binary.append(token.tupleValue!.currentState) //should be cs
-        binary.append(support.characterToUnicodeValue(token.tupleValue!.inputCharacter)) //should be ic
+        binary.append(Support.characterToUnicodeValue(token.tupleValue!.inputCharacter)) //should be ic
         binary.append(token.tupleValue!.newState) //should be ns
-        binary.append(support.characterToUnicodeValue(token.tupleValue!.outputCharacter)) //should be oc
+        binary.append(Support.characterToUnicodeValue(token.tupleValue!.outputCharacter)) //should be oc
         binary.append(token.tupleValue!.direction) //should be di
         return binary
     }
@@ -254,7 +250,7 @@ extension Assembler {
         let stringChars = Array(string)
         binary.append(stringChars.count)
         for c in stringChars {
-            binary.append(support.characterToUnicodeValue(c))
+            binary.append(Support.characterToUnicodeValue(c))
         }
         return binary
     }
@@ -308,7 +304,7 @@ extension Assembler {
         for l in program!.lines {
             //must getMemContents before changing memLocation since memLocation when printed
             memContents = getMemContents(memLocation, l)
-            toPrint += support.buffer("\(memLocation): \(memContents)", 23) + l.lineText + "\n"
+            toPrint += Support.buffer("\(memLocation): \(memContents)", 23) + l.lineText + "\n"
             for i in 0..<l.tokens.count {
                 switch l.tokens[i].type {
                 case .ImmediateString: memLocation += l.chunks[i].count - 1
@@ -325,4 +321,9 @@ extension Assembler {
         print(toPrint)
     }
 }
+
+
+
+
+
 
