@@ -1,6 +1,14 @@
+//
+//  Instruction.swift
+//  Simple Assembly Program
+//
+//  Created by Joshua Shen on 5/19/19.
+//  Copyright © 2019 Joshua Shen. All rights reserved.
+//
 import Foundation
 
-enum Instruction: Int, CaseIterable, CustomStringConvertible{
+
+enum Instruction: Int, CaseIterable {
     case halt = 0
     case clrr = 1
     case clrx = 2
@@ -59,72 +67,5 @@ enum Instruction: Int, CaseIterable, CustomStringConvertible{
     case outs = 55
     case nop = 56
     case jmpne = 57
-    
-    var description : String {
-        switch self {
-        // Use Internationalization, as appropriate.
-        case .halt: return "halt"
-        case .clrr: return "clrr"
-        case .clrx: return "clrx"
-        case .clrm: return "clrm"
-        case .clrb: return "clrb"
-        case .movir: return "movir"
-        case .movrr: return "movrr"
-        case .movrm: return "movrm"
-        case .movmr: return "movmr"
-        case .movxr: return "movxr"
-        case .movar: return "movar"
-        case .movb: return "movb"
-        case .addir: return "addir"
-        case .addmr: return "addmr"
-        case .addxr: return "addxr"
-        case .subir: return "subir"
-        case .subrr: return "subrr"
-        case .submr: return "submr"
-        case .subxr: return "subxr"
-        case .mulir: return "mulir"
-        case .mulrr: return "mulrr"
-        case .mulmr: return "mulmr"
-        case .mulxr: return "mulxr"
-        case .divir: return "divir"
-        case .divrr: return "divrr"
-        case .divmr: return "divmr"
-        case .divxr: return "divxr"
-        case .jmp: return "jmp"
-        case .sojz: return "sojz"
-        case .sojnz: return "sojnz"
-        case .aojz: return "aojz"
-        case .aojnz: return "aojnz"
-        case .cmpir: return "cmpir"
-        case .cmprr: return "cmprr"
-        case .cmpmr: return "cmpmr"
-        case .jmpn: return "jmpn"
-        case .jmpz: return "jmpz"
-        case .jmpp: return "jmpp"
-        case .jsr: return "jsr"
-        case .ret: return "ret"
-        case .push: return "push"
-        case .pop: return "pop"
-        case .stackc: return "stackc"
-        case .outci: return "outci"
-        case .outcr: return "outcr"
-        case .outcx: return "outcx"
-        case .outcb: return "outcb"
-        case .readi: return "readi"
-        case .printi: return "printi"
-        case .readc: return "readc"
-        case .readln: return "readln"
-        case .brk: return "break"
-        case .movrx: return "movrx"
-        case .movxx: return "movxx"
-        case .outs: return "outs"
-        case .nop: return "nop"
-        case .jmpne: return "jmpne"
-        default: return "Error: non-instruction"
-        }
-    }
-    
-    
-    
-    
 }
+
