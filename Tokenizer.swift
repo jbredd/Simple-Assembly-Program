@@ -8,19 +8,11 @@
 
 import Foundation
 
-//
-//  Tokenizer.swift
-//  PartialVM
-//
-//  Created by Nicholas Hatzis-Schoch on 5/12/19.
-//  Copyright © 2019 Slick Games. All rights reserved.
-//
-
-import Foundation
 
 struct Tokenizer {
-    static let chars = Set(Array("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"))
-    static let digits = Set(Array("0123456789"))
+    static let chars = Array("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+    static let digits = Array("0123456789")
+    static let instructions = Support.splitStringIntoParts("halt clrr clrx clrm clrb movir movrr movrm movmr movxr movar movb addir addrr addmr addxr subir subrr submr subxr mulir mulrr mulmr mulxr divir divrr divmr divxr jmp sojz sojnz aojz aojnz cmpir cmprr cmpmr jmpn jmpz jmpp jsr ret push pop stackc outci outcr outcx outcb readi printi readc readln brk movrx movxx outs nop jmpne")
     
     static func tokenizeChunks(_ chunks: [String])->[Token]  {
         var toRet = [Token]()
@@ -105,10 +97,6 @@ struct Tokenizer {
         return isLabel(Array(chunk[0..<chunk.count - 1])) && chunk.last! == ":"
     }
     static func isInstruction(_ chunk: [Character])-> Bool {
-        var instructions = [String]()
-        for i in Instruction.allCases {
-            instructions.append(i.description)
-        }
         return instructions.contains(String(chunk))
     }
     static func isDirective(_ chunk: [Character])-> Bool {
