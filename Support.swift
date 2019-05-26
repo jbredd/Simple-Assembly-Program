@@ -1,30 +1,32 @@
 //
 //  Support.swift
-//  PartialVM
+//  Simple Assembly Program
 //
-//  Created by Nicholas Hatzis-Schoch on 4/3/19.
-//  Copyright © 2019 Slick Games. All rights reserved.
+//  Created by Joshua Shen on 3/26/19.
+//  Copyright © 2019 Joshua Shen. All rights reserved.
 //
 
+import Foundation
+
 public struct Support {
-    func characterToUnicodeValue(_ c: Character)->Int {
+    static func characterToUnicodeValue(_ c: Character)->Int {
         let s = String(c)
         return Int(s.unicodeScalars[s.unicodeScalars.startIndex].value)
     }
     
-    func unicodeValueToCharacter(_ n: Int)->Character {
+    static func unicodeValueToCharacter(_ n: Int)->Character {
         return Character(UnicodeScalar(n)!)
     }
     
-    func splitStringIntoParts(_ expression: String)-> [String] {
+    static func splitStringIntoParts(_ expression: String)-> [String] {
         return expression.characters.split{$0 == " "}.map{ String($0) }
     }
     
-    func splitStringIntoLines(_ expression: String)-> [String] {
+    static func splitStringIntoLines(_ expression: String)-> [String] {
         return expression.characters.split{$0 == "\n"}.map{ String($0) }
     }
     
-    func readTextFile(_ path: String)-> (message: String?, fileText: String?) {
+    static func readTextFile(_ path: String)-> (message: String?, fileText: String?) {
         let text: String
         do {
             text = try String(contentsOfFile: path, encoding: String.Encoding.utf8)
@@ -35,7 +37,7 @@ public struct Support {
         return (nil, text)
     }
     
-    func writeTextFile(_ path: String, data: String)-> String {
+    static func writeTextFile(_ path: String, data: String)-> String {
         let url = NSURL.fileURL(withPath: path)
         do {
             try data.write(to: url, atomically: true, encoding: String.Encoding.utf8)
@@ -47,11 +49,19 @@ public struct Support {
     
     //returns a String with toBuffer on the left
     //and spaces on the right until length is matched
-    func buffer(_ toBuffer: String, _ length: Int)-> String {
+    static func buffer(_ toBuffer: String, _ length: Int)-> String {
         var endSpaces = ""
         for _ in 1...length - toBuffer.count {
             endSpaces += " "
         }
         return toBuffer + endSpaces
     }
+    static func removeColon(_ labelDef: String)-> String {
+        return String(labelDef.dropLast(1))
+    }
 }
+
+
+
+
+
