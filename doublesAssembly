@@ -1,0 +1,25 @@
+.Start Test
+Begin:  .Integer #0  ;Begin Printing Doubles
+End:  .Integer #20  ;End of Doubles to Print
+NewLine:  .Integer #10  ;Ascii for newLine
+IntroMess:  .String "A Program To Print Doubles"
+DoubleMess:  .String " Doubled is "
+
+Test: movmr Begin r8
+	movmr End r9
+	movmr NewLine r0
+
+	outs IntroMess
+	outcr r0
+
+Do01: movrr r8 r1
+	addrr r8 r1
+	printi r8
+	outs DoubleMess
+	printi r1
+	outcr r0
+	cmprr r8 r9
+	addir #1 r8
+	jmpne Do01
+wh01: halt
+
