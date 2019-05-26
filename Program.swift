@@ -15,7 +15,6 @@ public struct Program: CustomStringConvertible {
     var start = 0
     var length = 0
     var mem = [Int]()
-    var registers = Array(repeating: 0, count: 10)
     var symVal: [String: Int] = [:]
     
     init(_ path: String) {
