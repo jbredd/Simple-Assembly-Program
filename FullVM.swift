@@ -11,9 +11,10 @@ struct FullVM {
     var instructionPointer = 0
     var registers = Array(repeating: 0, count: 10)
     var statusFlag = StatusFlag()
+    var breakPoints = [Int]()
+    var brksDisabled = false
     
     var stack = Stack<Int>(size: 200)
-    let support = Support()
     var userInput = ""
     var wasCrashed = false
     var assembler = Assembler()
@@ -33,62 +34,182 @@ struct FullVM {
     mutating func run() {
         print("Welcome to SAP!")
         help()
-        print(">", terminator: "")
+        print("\n> ", terminator: "")
         userInput = readLine()!
         while userInput != "quit" {
-            var splitInput = support.splitStringIntoParts(userInput)
-            switch splitInput[0] {
-            //for each case first the number of arguments is checked and then whether the type of the argument is as expected
-            case "asm":
-                if numArgs(splitInput) != 1 {print("The command 'run' asm in 1 argument, you put in \(numArgs(splitInput)). Please type again carefully\n"); break};
-                assembler.assemble(pathSpecs + splitInput[1] + ".txt")
-            case "run":
-                if numArgs(splitInput) != 0 {print("The command 'run' takes in 0 arguments, you put in \(numArgs(splitInput)). Please type again carefully\n"); break};
-                executeBinary()
-                if wasCrashed {print("\n...Binary execution unsuccessful")}
-                else {print("\n...Binary execution successful")}
-            case "path":
-                if numArgs(splitInput) != 1 {print("The command 'path' takes in 1 argument, you put in \(numArgs(splitInput)). Please type again carefully\n"); break};
-                pathSpecs = splitInput[1]
-            case "printlst":
-                if numArgs(splitInput) != 0 {print("The command 'printlst' takes in 0 arguments, you put in \(numArgs(splitInput)). Please type again carefully\n"); break};
-                assembler.printLst()
-            case "printbin":
-                if numArgs(splitInput) != 0 {print("The command 'printbin' takes in 0 arguments, you put in \(numArgs(splitInput)). Please type again carefully\n"); break};
-                assembler.printBin()
-            case "printsym":
-                if numArgs(splitInput) != 0 {print("The command 'printbin' takes in 0 arguments, you put in \(numArgs(splitInput)). Please type again carefully\n"); break};
-                assembler.printSymVal()
-            case "help":
-                if numArgs(splitInput) != 0 {print("The command 'help' takes in 0 arguments, you put in \(numArgs(splitInput)). Please type again carefully\n"); break}
-                help()
-            case "quit":
-                if numArgs(splitInput) != 0 {print("The command 'quit' takes in 0 arguments, you put in \(numArgs(splitInput)). Please type again carefully\n"); break}
-                return
-            default: print("'\(userInput)' is an invalid command. Please type again carefully\n")
+            var splitInput = Support.splitStringIntoParts(userInput)
+            if splitInput.count > 0 {
+                switch splitInput[0] {
+                //for each case first the number of arguments is checked
+                case "asm":
+                    if numArgs(splitInput) != 1 {
+                        print(wrongNumArgsMessage("asm", 1, numArgs(splitInput)))
+                        break
+                    }
+                    assembler.assemble(pathSpecs + splitInput[1] + ".txt")
+                case "run":
+                    if numArgs(splitInput) != 0 {
+                        print(wrongNumArgsMessage("run", 0, numArgs(splitInput)))
+                        break
+                    }
+                    runDebugger()
+                    if wasCrashed {print("\n...Binary execution unsuccessful")}
+                    else {print("\n...Binary execution successful")}
+                case "path":
+                    if numArgs(splitInput) != 1 {
+                        print(wrongNumArgsMessage("path", 1, numArgs(splitInput)))
+                        break
+                    }
+                    pathSpecs = splitInput[1]
+                case "printlst":
+                    if numArgs(splitInput) != 0 {
+                        print(wrongNumArgsMessage("printlst", 0, numArgs(splitInput)))
+                        break
+                    }
+                    assembler.printLst()
+                case "printbin":
+                    if numArgs(splitInput) != 0 {
+                        print(wrongNumArgsMessage("printbin", 0, numArgs(splitInput)))
+                        break
+                    }
+                    assembler.printBin()
+                case "printsym":
+                    if numArgs(splitInput) != 0 {
+                        print(wrongNumArgsMessage("printsym", 0, numArgs(splitInput)))
+                        break
+                    }
+                    assembler.printSymVal()
+                case "help":
+                    if numArgs(splitInput) != 0 {
+                        print(wrongNumArgsMessage("help", 0, numArgs(splitInput)))
+                        break
+                    }
+                    help()
+                default: print("'\(splitInput[0])' is an invalid command. Please type again carefully\n")
+                }
             }
-            print("\n>", terminator: "")
+            print("\n> ", terminator: "")
             userInput = readLine()!
         }
+        print("...SAP exited")
+        return
     }
     
-    mutating func executeBinary() {
-        /*
-        for i in 0..<memory.count {
-            print("\(i):   \(memory[i])")
-        }*/
+    func wrongNumArgsMessage(_ commandName: String, _ expectedNum: Int, _ numArgs: Int)-> String {
+        return "The command \"\(commandName)\" takes in \(expectedNum) arguments, you put in \(numArgs). Please type again carefully"
+    }
+}
+
+//DEBUGGER EXTENSION
+extension FullVM {
+    mutating func runDebugger() {
         if assembler.program == nil {print("Please assemble a program first"); return}
         let p = assembler.program!
-        instructionPointer = p.start
-        while(pointerIsInMemoryBounds()) {
+        let ogMem = p.mem //to ensure that consecutive runs of the same program do not use different memory but the original memory
+        registers = Array(repeating: 0, count: 10)
+        statusFlag = StatusFlag()
+        instructionPointer = assembler.program!.start
+        
+        debuggerHelp()
+        print("Sdb (\(instructionPointer), \(p.mem[instructionPointer]))> ", terminator: "")
+        userInput = readLine()!
+        while userInput != "exit" {
+            var splitInput = Support.splitStringIntoParts(userInput)
+            if splitInput.count > 0 {
+                switch splitInput[0] {
+                    //for each case first num args is checked then if types match expected
+                case "setbk":
+                    if numArgs(splitInput) != 1 {print(wrongNumArgsMessage("setbk", 1, numArgs(splitInput))); break}
+                    let bk = Int(splitInput[1])
+                    if bk != nil {setbk(bk!)}
+                    else {print("The commmand \"setbk\" should take in an integer")}
+                case "rmbk":
+                    if numArgs(splitInput) != 1 {print(wrongNumArgsMessage("rmbk", 1, numArgs(splitInput))); break}
+                    let bk = Int(splitInput[1])
+                    if bk != nil {rmbk(bk!)}
+                    else {print("The commmand \"rmbk\" should take in an integer")}
+                case "clrbk":
+                    if numArgs(splitInput) != 0 {print(wrongNumArgsMessage("clrbk", 0, numArgs(splitInput))); break}
+                    breakPoints = [Int]()
+                case "disbk":
+                    if numArgs(splitInput) != 0 {print(wrongNumArgsMessage("disbk", 0, numArgs(splitInput))); break}
+                    brksDisabled = true
+                case "enbk":
+                    if numArgs(splitInput) != 0 {print(wrongNumArgsMessage("enbk", 0, numArgs(splitInput))); break}
+                    brksDisabled = false
+                case "pbk":
+                    if numArgs(splitInput) != 0 {print(wrongNumArgsMessage("pbk", 0, numArgs(splitInput))); break}
+                    pbk()
+                case "preg":
+                    if numArgs(splitInput) != 0 {print(wrongNumArgsMessage("preg", 0, numArgs(splitInput))); break}
+                    preg()
+                case "wreg":
+                    if numArgs(splitInput) != 2 {print(wrongNumArgsMessage("wreg", 2, numArgs(splitInput))); break}
+                    let number = Int(splitInput[1])
+                    if number == nil {print("<number> is supposed to be an integer"); break}
+                    let value = Int(splitInput[2])
+                    if value == nil {print("<value> is supposed to be an integer"); break}
+                    wreg(number!, value!)
+                case "wpc":
+                    if numArgs(splitInput) != 1 {print(wrongNumArgsMessage("wpc", 1, numArgs(splitInput))); break}
+                    let value = Int(splitInput[1])
+                    if value != nil {instructionPointer = value!}
+                    else {print("The commmand \"wpc\" should take in an integer")}
+                case "pmem":
+                    if numArgs(splitInput) != 2 {print(wrongNumArgsMessage("pmem", 2, numArgs(splitInput))); break}
+                    let start = Int(splitInput[1])
+                    if start == nil {print("<start> is supposed to be an integer"); break}
+                    let end = Int(splitInput[2])
+                    if end == nil {print("<end> is supposed to be an integer"); break}
+                    pmem(start!, end!)
+                case "deas": print("deassembler not done yet")
+                case "wmem":
+                    if numArgs(splitInput) != 2 {print(wrongNumArgsMessage("wmem", 2, numArgs(splitInput))); break}
+                    let address = Int(splitInput[1])
+                    if address == nil {print("<address> is supposed to be an integer"); break}
+                    let value = Int(splitInput[2])
+                    if value == nil {print("<value> is supposed to be an integer"); break}
+                    wmem(address!, value!)
+                case "pst":
+                    if numArgs(splitInput) != 0 {print(wrongNumArgsMessage("pst", 0, numArgs(splitInput))); break}
+                    assembler.printSymVal()
+                case "g":
+                    if numArgs(splitInput) != 0 {print(wrongNumArgsMessage("g", 0, numArgs(splitInput))); break}
+                    executeBinary(singleStep: false)
+                case "s":
+                    if numArgs(splitInput) != 0 {print(wrongNumArgsMessage("s", 0, numArgs(splitInput))); break}
+                    executeBinary(singleStep: true)
+                case "help":
+                    if numArgs(splitInput) != 0 {print(wrongNumArgsMessage("help", 0, numArgs(splitInput))); break}
+                    debuggerHelp()
+                default: print("\(splitInput[0]) is an invalid debugger command. Please refer back to the help menu and type again carefully")
+                }
+            }
+            print("\nSdb (\(instructionPointer), \(p.mem[instructionPointer]))> ", terminator: "")
+            userInput = readLine()!
+        }
+        assembler.program!.mem = ogMem
+    }
+    
+    mutating func executeBinary(singleStep: Bool) {
+        let p = assembler.program!
+        var numExecutedInstructions = 0
+        while(isInMemoryBounds(instructionPointer)) {
+            //first have to check to stop depending on singleStep or not
+            if !singleStep {
+                if !brksDisabled && breakPoints.contains(instructionPointer) && numExecutedInstructions != 0 {
+                    //third condition is to stop g from getting stuck on one breakpoint
+                    return
+                }
+            } else {
+                if numExecutedInstructions == 1 {return}
+            }
             if wasCrashed == true {return}
+            numExecutedInstructions += 1
+            
             switch p.mem[instructionPointer] {
             case 0: wasCrashed = false;
-            /*
-                for i in 0..<memory.count {
-                    print("\(i):   \(memory[i])")
-                }*/
-                return //halt
+            return //halt
             case 1: clrr(p.mem[instructionPointer + 1])
             case 2: clrx(p.mem[instructionPointer + 1])
             case 3: clrm(p.mem[instructionPointer + 1])
@@ -147,6 +268,7 @@ struct FullVM {
             case 56: nop()
             case 57: jmpne(p.mem[instructionPointer + 1])
             default:
+                numExecutedInstructions -= 1
                 print("Error: Nonexistent instruction called, instruction # \(p.mem[instructionPointer]) does not exist")
                 wasCrashed = true; return
             }
@@ -155,7 +277,114 @@ struct FullVM {
         print("Error: Index out of bounds, tried to access memory location \(instructionPointer)")
         return
     }
+    
+    func bkDescription(_ bk: Int)-> String {
+        for (s, v) in assembler.program!.symVal {
+            if v == bk {
+                return "\(bk)  (\(Support.removeColon(s))))"
+            }
+        }
+        return "\(bk)"
+    }
+    
+    mutating func setbk(_ bk: Int) { //ORDER AND INVALID BKS
+        if breakPoints.contains(bk) {
+            print("\(bkDescription(bk)) is already set")
+            return
+        }
+        var insertIndex = 0
+        for i in 0..<breakPoints.count {
+            if bk < breakPoints[i] {insertIndex = i}
+        }
+        breakPoints.insert(bk, at: insertIndex)
+    }
+    
+    mutating func rmbk(_ bk: Int) {
+        if !breakPoints.contains(bk) {
+            print("breakpoint \(bkDescription(bk)) cannot be removed as it does not exist")
+            return
+        }
+        breakPoints.remove(at: breakPoints.index(of: bk)!)
+    }
+    
+    func pbk() {
+        var toPrint = "\nBreak Points:"
+        for bk in breakPoints {
+            toPrint += "\n" + bkDescription(bk)
+        }
+        print(toPrint)
+    }
+    
+    func preg() {
+        var toPrint = "Registers:\n"
+        for n in 0...9 {
+            toPrint += "  r\(n):  \(registers[n])\n"
+        }
+        toPrint += "Program Counter: \(instructionPointer)"
+        print(toPrint)
+    }
+    
+    mutating func wreg(_ rNumber: Int, _ value: Int) {
+        if rNumber < 0 || rNumber > 9 {
+            print("register \(rNumber) does not exist")
+            return
+        }
+        registers[rNumber] = value
+    }
+    
+    func pmem(_ start: Int, _ end: Int) {
+        if !isInMemoryBounds(start) {
+            print("memory location \(start) does not exist")
+            return
+        }
+        if !isInMemoryBounds(end) {
+            print("memory location \(end) does not exist")
+            return
+        }
+        if start > end {
+            print("The start address cannot be after the end address")
+            return
+        }
+        var toPrint = "Memory Dump:\n"
+        for i in start...end {
+            toPrint += "  \(i):  \(assembler.program!.mem[i])\n"
+        }
+        print(toPrint)
+    }
+    
+    mutating func wmem(_ address: Int, _ value: Int) {
+        if !isInMemoryBounds(address) {
+            print("memory location \(address) does not exist")
+            return
+        }
+        assembler.program!.mem[address] = value
+    }
+    
+    func debuggerHelp() {
+        var toPrint = "Debugger Help:"
+        toPrint += "\n    setbk <address> - set a breakpoint at <address>"
+        toPrint += "\n    rmbk <address> - remove breakpoint at <address>"
+        toPrint += "\n    clrbk - clear all breakpoints"
+        toPrint += "\n    disbk - temporarily disable all breakpoints"
+        toPrint += "\n    enbk - enable all breakpoints"
+        toPrint += "\n    pbk - print breakpoint table"
+        toPrint += "\n    preg - print registers"
+        toPrint += "\n    wreg <number> <value> - write <value> to register <number>"
+        toPrint += "\n    wpc <value> - change program counter to <value>"
+        toPrint += "\n    pmem <start address> <end address> - print contents of memory from <start address> to <end address>"
+        toPrint += "\n    wmem <address> <value> - change value of memory at <address> to value"
+        toPrint += "\n    deas <start address> <end address> - deassemble memory locations"
+        toPrint += "\n    pst - print symbol table"
+        toPrint += "\n    g - continue program execution until next breakpoint"
+        toPrint += "\n    s - execute a single step"
+        toPrint += "\n    help - print this help menu"
+        toPrint += "\n    exit - terminate this program's execution"
+        print(toPrint)
+    }
 }
+
+
+
 
 
 //extension for helpers
@@ -166,14 +395,14 @@ extension FullVM {
         var pointer = labelAddress + 1
         
         for _ in 1...stringLength {
-            toReturn += String(support.unicodeValueToCharacter(assembler.program!.mem[pointer]))
+            toReturn += String(Support.unicodeValueToCharacter(assembler.program!.mem[pointer]))
             pointer += 1
         }
         return toReturn
     } //finds the string at a given memory address
     
-    func pointerIsInMemoryBounds()-> Bool {
-        return (0 <= instructionPointer && instructionPointer < assembler.program!.mem.count)
+    func isInMemoryBounds(_ address: Int)-> Bool {
+        return (0 <= address && address < assembler.program!.mem.count)
     } //determines if the instructionPointer is pointing to an existing memory address
     
     func help() {
@@ -189,32 +418,6 @@ extension FullVM {
             print(toPrint)
     }
     
-    /* I THINK THIS MIGHT NOT BE NEEDED
-    mutating func read(_ path: String) {
-        if support.readTextFile(path).fileText == nil {
-            print(support.readTextFile(path).message!)
-            return
-        }
-        let fileContent = support.readTextFile(path).fileText!
-        print(fileContent)
-        
-        let binaryStrings = support.splitStringIntoLines(fileContent)
-        binary = Array(repeating: 0, count: binaryStrings.count)
-        for n in 0..<binaryStrings.count {
-            if Int(binaryStrings[n]) != nil {
-                binary[n] = Int(binaryStrings[n])!
-            } else {print("...file contained nonbinary elements, cannot be read to memory"); return}
-        }
-        size = binary[0]
-        startAddress = binary[1]
-        instructionPointer = startAddress
-        for n in 2..<binary.count { //binary[0] and binary[1] not part of memory
-            memory[n - 2] = binary[n]
-        }
-        
-        print("...reading binary file complete")
-    }*/
-    
     func numArgs(_ args: [String])-> Int {
         return args.count - 1
     }
@@ -227,7 +430,7 @@ extension FullVM {
     //therefore r9 should be popped first, r5 last
     mutating func popr5to9() {
         for n in 1...5 {
-            var popped = stack.pop()
+            let popped = stack.pop()
             if popped == nil {
                 wasCrashed = true
                 return
@@ -512,24 +715,24 @@ extension FullVM {
     }
     
     mutating func outci(_ int: Int) { //44
-        print(support.unicodeValueToCharacter(int), terminator: "")
+        print(Support.unicodeValueToCharacter(int), terminator: "")
         console += String(int)
         instructionPointer += 2
     }
     
     mutating func outcr(_ rIndex: Int) { //45
-        print(support.unicodeValueToCharacter(registers[rIndex]), terminator: "")
+        print(Support.unicodeValueToCharacter(registers[rIndex]), terminator: "")
         instructionPointer += 2
     }
     
     mutating func outcx(_ rIndex: Int) { //46
-        print(support.unicodeValueToCharacter(assembler.program!.mem[registers[rIndex]]), terminator: "")
-        console += String(support.unicodeValueToCharacter(assembler.program!.mem[registers[rIndex]]))
+        print(Support.unicodeValueToCharacter(assembler.program!.mem[registers[rIndex]]), terminator: "")
+        console += String(Support.unicodeValueToCharacter(assembler.program!.mem[registers[rIndex]]))
         instructionPointer += 2
     }
     
     mutating func outcb(_ r1Index: Int, _ r2Index: Int) { //47
-        let char = support.unicodeValueToCharacter(registers[r1Index])
+        let char = Support.unicodeValueToCharacter(registers[r1Index])
         let count = registers[r2Index]
         for _ in 1...count{print(char, terminator: ""); console += String(char)}
         instructionPointer += 3
@@ -559,10 +762,10 @@ extension FullVM {
     
     mutating func readln(_ labelAddress: Int, _ rIndex: Int) { //51
         var charactersUni = [Int]()
-        let consoleLines = support.splitStringIntoLines(console)
+        let consoleLines = Support.splitStringIntoLines(console)
         let ln = consoleLines.last!
         var i = 1
-        for c in ln {charactersUni.append(support.characterToUnicodeValue(c))}
+        for c in ln {charactersUni.append(Support.characterToUnicodeValue(c))}
         assembler.program!.mem[labelAddress] = ln.count
         while (i - 1) != ln.count{
             assembler.program!.mem[labelAddress + i] = charactersUni[i - 1]
