@@ -1,3 +1,11 @@
+//
+//  File.swift
+//  Simple Assembly Program
+//
+//  Created by Joshua Shen on 5/11/19.
+//  Copyright © 2019 Joshua Shen. All rights reserved.
+//
+
 import Foundation
 
 //
@@ -11,7 +19,7 @@ import Foundation
 import Foundation
 
 struct Tokenizer {
-    static let chars = Set(Array("abcdefghijklmnopqrstuvwxyz"))
+    static let chars = Set(Array("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"))
     static let digits = Set(Array("0123456789"))
     
     static func tokenizeChunks(_ chunks: [String])->[Token]  {
@@ -104,8 +112,8 @@ struct Tokenizer {
         return instructions.contains(String(chunk))
     }
     static func isDirective(_ chunk: [Character])-> Bool {
-        let chunkStr = getString(chunk)
-        return chunkStr == ".string" || chunkStr == ".integer" || chunkStr == ".tuple" || chunkStr == ".start"
+        let s = getString(chunk)
+        return s == ".String" || s == ".Integer" || s == ".Tuple" || s == ".Start" || s == ".string" || s == ".integer" || s == ".tuple" || s == ".start" 
     }
     static func isImmediateInteger(_ chunk: [Character])-> Bool{
         if chunk[0] != "#"{return false}
@@ -119,4 +127,5 @@ struct Tokenizer {
         }
     }
 }
-}
+
+
