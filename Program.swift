@@ -8,7 +8,7 @@
 
 import Foundation
 
-public struct Program: CustomStringConvertible {
+public struct Program {
     var path: String
     var lines = [Line]()
     var legal = false
@@ -16,14 +16,10 @@ public struct Program: CustomStringConvertible {
     var length = 0
     var mem = [Int]()
     var symVal: [String: Int] = [:]
+    var valSym: [Int: String] = [:]
     
     init(_ path: String) {
         self.path = path
-    }
-    
-    
-    public var description: String {
-        return " "
     }
 }
 
