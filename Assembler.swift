@@ -11,12 +11,8 @@ import Foundation
 
 struct Assembler{
     var programs = [Program]()
-    
-    var instructionArgs: [String: [TokenType]] = [:]
-    var directiveArgs: [String : [TokenType]] = [:]
     var userInput = ""
-    init() {fillDictionary()}
-    
+    init() {}
     
     mutating func read(_ path: String)-> Bool {
         if Support.readTextFile(path).fileText == nil {
@@ -37,7 +33,9 @@ struct Assembler{
     
     mutating func assemble(_ pathSpecs: String, _ name: String) {
         passOne(pathSpecs + name + ".txt")
-        if !programs[getProgramIndex(pathSpecs + name + ".txt")!].legal {
+        let pIndex = getProgramIndex(pathSpecs + name + ".txt")
+        if pIndex == nil {return}
+        if !programs[pIndex!].legal {
             print("...Assembly was unsuccessful"); return
         }
         passTwo(pathSpecs + name + ".txt")
@@ -51,75 +49,6 @@ struct Assembler{
             }
         }
         return nil
-    }
-    
-    mutating func fillDictionary() {
-        directiveArgs[".start"] = [.Label]
-        directiveArgs[".string"] = [.ImmediateString]
-        directiveArgs[".integer"] = [.ImmediateInteger]
-        directiveArgs[".tuple"] = [.ImmediateTuple]
-        directiveArgs[".Start"] = [.Label]
-        directiveArgs[".String"] = [.ImmediateString]
-        directiveArgs[".Integer"] = [.ImmediateInteger]
-        directiveArgs[".Tuple"] = [.ImmediateTuple]
-        instructionArgs["halt"] = []
-        instructionArgs["clrr"] = [.Register]
-        instructionArgs["clrx"] = [.Register]
-        instructionArgs["clrm"] = [.Label]
-        instructionArgs["clrb"] = [.Register, .Register]
-        instructionArgs["movir"] = [.ImmediateInteger, .Register]
-        instructionArgs["movrr"] = [.Register, .Register]
-        instructionArgs["movrm"] = [.Register, .Label]
-        instructionArgs["movmr"] = [.Label, .Register]
-        instructionArgs["movxr"] = [.Register, .Register]
-        instructionArgs["movar"] = [.Label, .Register]
-        instructionArgs["movb"] = [.Register, .Register, .Register]
-        instructionArgs["addir"] = [.ImmediateInteger, .Register]
-        instructionArgs["addrr"] = [.Register, .Register]
-        instructionArgs["addmr"] = [.Label, .Register]
-        instructionArgs["addxr"] = [.Register, .Register]
-        instructionArgs["subir"] = [.ImmediateInteger, .Register]
-        instructionArgs["subrr"] = [.Register, .Register]
-        instructionArgs["submr"] = [.Label, .Register]
-        instructionArgs["subxr"] = [.Register, .Register]
-        instructionArgs["mulir"] = [.ImmediateInteger, .Register]
-        instructionArgs["mulrr"] = [.Register, .Register]
-        instructionArgs["mulmr"] = [.Label, .Register]
-        instructionArgs["mulxr"] = [.Register, .Register]
-        instructionArgs["divir"] = [.ImmediateInteger, .Register]
-        instructionArgs["divrr"] = [.Register, .Register]
-        instructionArgs["divmr"] = [.Label, .Register]
-        instructionArgs["divxr"] = [.Register, .Register]
-        instructionArgs["jmp"] = [.Label]
-        instructionArgs["sojz"] = [.Register, .Label]
-        instructionArgs["sojnz"] = [.Register, .Label]
-        instructionArgs["aojz"] = [.Register, .Label]
-        instructionArgs["aojnz"] = [.Register, .Label]
-        instructionArgs["cmpir"] = [.ImmediateInteger, .Register]
-        instructionArgs["cmprr"] = [.Register, .Register]
-        instructionArgs["cmpmr"] = [.Label, .Register]
-        instructionArgs["jmpn"] = [.Label]
-        instructionArgs["jmpz"] = [.Label]
-        instructionArgs["jmpp"] = [.Label]
-        instructionArgs["jsr"] = [.Label]
-        instructionArgs["ret"] = []
-        instructionArgs["push"] = [.Register]
-        instructionArgs["pop"] = [.Register]
-        instructionArgs["stackc"] = [.Register]
-        instructionArgs["outci"] = [.ImmediateInteger]
-        instructionArgs["outcr"] = [.Register]
-        instructionArgs["outcx"] = [.Register]
-        instructionArgs["outcb"] = [.Register, .Register]
-        instructionArgs["readi"] = [.Register, .Register]
-        instructionArgs["printi"] = [.Register]
-        instructionArgs["readc"] = [.Register]
-        instructionArgs["readln"] = [.Label, .Register]
-        instructionArgs["brk"] = []
-        instructionArgs["movrx"] = [.Register, .Register]
-        instructionArgs["movxx"] = [.Register, .Register]
-        instructionArgs["outs"] = [.Label]
-        instructionArgs["nop"] = []
-        instructionArgs["jmpne"] = [.Label]
     }
     
     func printSymVal(_ path: String) {
@@ -147,13 +76,15 @@ extension Assembler{
         }
     }
     
-    mutating func makeSymVal(_ path: String, _ lines: [Line]) { //WRONG
+    mutating func makeSymVal(_ path: String, _ lines: [Line]) { 
         let pIndex = getProgramIndex(path)
         var memLocation = -1 //to account for .start label address not taking up a space
         for l in lines {
             for i in 0..<l.tokens.count {
                 switch l.tokens[i].type {
-                case .LabelDefinition: programs[pIndex!].symVal[l.chunks[i]] = memLocation
+                case .LabelDefinition:
+                    programs[pIndex!].symVal[l.chunks[i]] = memLocation
+                    programs[pIndex!].valSym[memLocation] = l.chunks[i]
                 case .ImmediateInteger: memLocation += 1
                 case .ImmediateString: memLocation += l.chunks[i].count - 1
                 case .ImmediateTuple: memLocation += 5
@@ -186,7 +117,7 @@ extension Assembler{
     
     //(args are legal, error message), the start arg is the index of the instruction token
     func validInstructionArgs(_ path: String, _ line: Line, _ start: Int)-> (Bool, String) {
-        let expected = instructionArgs[line.chunks[start]]
+        let expected = AssemblerDictionary.instructionArgs[line.chunks[start]]
         if expected != nil{
             if line.tokens.count - start > expected!.count + 1 {return (false, "\n..........\(line.chunks[start]) has too many arguments")}
             for i in 0..<expected!.count {
@@ -202,7 +133,7 @@ extension Assembler{
     
     //(args are legal, error message), the start arg is the index of the directive token
     func validDirectiveArg(_ line: Line, _ start: Int)-> (Bool, String) {
-        let expected = directiveArgs[line.chunks[start]]
+        let expected = AssemblerDictionary.directiveArgs[line.chunks[start]]
         if line.tokens.count - start != 2 {return (false, "\n..........Directives should take in one argument")}
         if line.tokens[start + 1].type == expected![0] {return (true, "")}
         return (false, "\n..........\(line.chunks[start]) should take in an \(expected![0])")
@@ -236,11 +167,11 @@ extension Assembler {
         for l in programs[pIndex!].lines {
             for i in 0..<l.tokens.count {
                 switch l.tokens[i].type {
-                case .Register: programs[pIndex!].mem.append(Translator.registers[l.chunks[i]]!)
+                case .Register: programs[pIndex!].mem.append(AssemblerDictionary.registers[l.chunks[i]]!)
                 case .ImmediateString: for b in translateString(l.tokens[i].stringValue!) {programs[pIndex!].mem.append(b)}
                 case .ImmediateInteger: programs[pIndex!].mem.append(l.tokens[i].intValue!)
                 case .ImmediateTuple: for b in translateTuple(l.tokens[i]) {programs[pIndex!].mem.append(b)}
-                case .Instruction: programs[pIndex!].mem.append(Translator.instructions[l.chunks[i]]!)
+                case .Instruction: programs[pIndex!].mem.append(AssemblerDictionary.instructions[l.chunks[i]]!)
                 case .Label: programs[pIndex!].mem.append(programs[pIndex!].symVal[l.chunks[i] + ":"]!)
                 case .Directive: print("", terminator: "") //does nothing
                 case .LabelDefinition: print("", terminator: "") //does nothing
@@ -344,7 +275,6 @@ extension Assembler {
         print(toPrint)
     }
 }
-
 
 
 
