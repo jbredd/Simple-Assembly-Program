@@ -20,7 +20,6 @@ struct FullVM {
     var wasCrashed = false
     var asmblr = Assembler()
     var pathSpecs = ""
-    var programs = Set<String>()
     
     var stackRegister: Int {
         if stack.isEmpty() {return 2}
@@ -42,50 +41,29 @@ struct FullVM {
             var splitInput = Support.splitStringIntoParts(userInput)
             if splitInput.count > 0 {
                 switch splitInput[0] {
-                //for each case first the number of arguments is checked
+                //for each case the number of arguments is checked first
                 case "asm":
-                    if numArgs(splitInput) != 1 {
-                        print(wrongNumArgsMessage("asm", 1, numArgs(splitInput)))
-                        break
-                    }
+                    if numArgs(splitInput) != 1 {print(wrongNumArgsMessage("asm", 1, numArgs(splitInput))); break}
                     asmblr.assemble(pathSpecs, splitInput[1])
                 case "run":
-                    if numArgs(splitInput) != 1 {
-                        print(wrongNumArgsMessage("run", 1, numArgs(splitInput)))
-                        break
-                    }
+                    if numArgs(splitInput) != 1 {print(wrongNumArgsMessage("run", 1, numArgs(splitInput))); break}
                     runDebugger(pathSpecs + splitInput[1] + ".txt")
                     if wasCrashed {print("\n...Binary execution unsuccessful")}
                     else {print("\n...Binary execution successful")}
                 case "path":
-                    if numArgs(splitInput) != 1 {
-                        print(wrongNumArgsMessage("path", 1, numArgs(splitInput)))
-                        break
-                    }
+                    if numArgs(splitInput) != 1 {print(wrongNumArgsMessage("path", 1, numArgs(splitInput))); break}
                     pathSpecs = splitInput[1]
                 case "printlst":
-                    if numArgs(splitInput) != 1 {
-                        print(wrongNumArgsMessage("printlst", 1, numArgs(splitInput)))
-                        break
-                    }
+                    if numArgs(splitInput) != 1 {print(wrongNumArgsMessage("printlst", 1, numArgs(splitInput))); break}
                     asmblr.printLst(pathSpecs + splitInput[1] + ".txt")
                 case "printbin":
-                    if numArgs(splitInput) != 1 {
-                        print(wrongNumArgsMessage("printbin", 1, numArgs(splitInput)))
-                        break
-                    }
+                    if numArgs(splitInput) != 1 {print(wrongNumArgsMessage("printbin", 1, numArgs(splitInput))); break}
                     asmblr.printBin(pathSpecs + splitInput[1] + ".txt")
                 case "printsym":
-                    if numArgs(splitInput) != 1 {
-                        print(wrongNumArgsMessage("printsym", 1, numArgs(splitInput)))
-                        break
-                    }
+                    if numArgs(splitInput) != 1 {print(wrongNumArgsMessage("printsym", 1, numArgs(splitInput))); break}
                     asmblr.printSymVal(pathSpecs + splitInput[1] + ".txt")
                 case "help":
-                    if numArgs(splitInput) != 0 {
-                        print(wrongNumArgsMessage("help", 0, numArgs(splitInput)))
-                        break
-                    }
+                    if numArgs(splitInput) != 0 {print(wrongNumArgsMessage("help", 0, numArgs(splitInput))); break}
                     help()
                 default: print("'\(splitInput[0])' is an invalid command. Please type again carefully\n")
                 }
@@ -176,7 +154,9 @@ extension FullVM {
                     let end = Int(splitInput[2])
                     if end == nil {print("<end> is supposed to be an integer"); break}
                     pmem(path, start!, end!)
-                case "deas": print("deassembler not done yet")
+                case "deas":
+                    if numArgs(splitInput) != 2 {print(wrongNumArgsMessage("deas", 2, numArgs(splitInput))); break}
+                    deassemble(path, splitInput[1], splitInput[2])
                 case "wmem":
                     if numArgs(splitInput) != 2 {print(wrongNumArgsMessage("wmem", 2, numArgs(splitInput))); break}
                     let address = Int(splitInput[1])
@@ -294,6 +274,42 @@ extension FullVM {
         wasCrashed = true; return
     }
     
+    func deassemble(_ path: String, _ sym1: String, _ sym2: String) {
+        let pIndex = getPIndex(path)
+        let lowerMem = asmblr.programs[pIndex!].symVal[sym1 + ":"]
+        if lowerMem == nil {print("The symbol \(sym1) does not exist"); return}
+        let upperMem = asmblr.programs[pIndex!].symVal[sym2 + ":"]
+        if upperMem == nil {print("The symbol \(sym2) does not exist"); return}
+        if lowerMem! > upperMem! {print("The symbol one cannot be past symbol two in memory. Please refer to symbol table and type again"); return}
+        
+        var toPrint = "Deassembly:\n"
+        let mem = asmblr.programs[pIndex!].mem
+        var pc = lowerMem!
+        while pc <= upperMem! {
+            if asmblr.programs[pIndex!].valSym[pc] != nil {
+                toPrint += asmblr.programs[pIndex!].valSym[pc]! + "  "
+            } else {toPrint += "\t"}
+            let instructionString = AssemblerDictionary.instructionCodes[mem[pc]]!
+            toPrint += instructionString
+            
+            let expected = AssemblerDictionary.instructionArgs[instructionString]!
+            for i in 0..<expected.count {
+                //an instruction takes can take in register, label, or immediate int
+                if expected[i] == .Register {
+                    toPrint += " r\(mem[pc + i + 1])"
+                }
+                if expected[i] == .Label {
+                    toPrint += " \(Support.removeColon(asmblr.programs[pIndex!].valSym[mem[pc + i + 1]]!))"
+                }
+                if expected[i] == .ImmediateInteger {
+                    toPrint += " #\(mem[pc + i + 1])"
+                }
+            }
+            toPrint += "\n"
+            pc += expected.count + 1
+        }
+        print(toPrint)
+    }
     
     
     func bkDescription(_ path: String, _ bk: Int)-> String {
@@ -391,7 +407,7 @@ extension FullVM {
         toPrint += "\n    wpc <value> - change program counter to <value>"
         toPrint += "\n    pmem <start address> <end address> - print contents of memory from <start address> to <end address>"
         toPrint += "\n    wmem <address> <value> - change value of memory at <address> to value"
-        toPrint += "\n    deas <start address> <end address> - deassemble memory locations"
+        toPrint += "\n    deas <symbol 1> <symbol 2> - deassemble from <symbol 1> to <symbol 2>"
         toPrint += "\n    pst - print symbol table"
         toPrint += "\n    g - continue program execution until next breakpoint"
         toPrint += "\n    s - execute a single step"
@@ -464,7 +480,7 @@ extension FullVM {
 extension FullVM {
     /*
      IMPORTANT NOTES:
-     Some instructions have to take in path as a parameter; these are the ones that access and change memory. On the other hand, instructions that access and modify registers do not need to take in a path since only memory is unique to each program; only one set of register, status flag, and instruction pointer are stored in the vm whereas multiple memories are stored, one for each program
+     Some instructions have to take in path as a parameter; these are the ones that access or change memory. On the other hand, instructions that access and modify registers do not need to take in a path since only memory is unique to each program; only one set of register, status flag, pc, brkpoints, and brksDisabled is stored in the vm whereas multiple memories are stored, one for each program within the assembler
      */
     
     func halt() {return} //0
