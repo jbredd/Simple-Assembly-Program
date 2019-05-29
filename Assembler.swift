@@ -32,13 +32,14 @@ struct Assembler{
     }
     
     mutating func assemble(_ pathSpecs: String, _ name: String) {
-        passOne(pathSpecs + name + ".txt")
-        let pIndex = getProgramIndex(pathSpecs + name + ".txt")
+        let path = pathSpecs + name + ".txt"
+        passOne(path)
+        let pIndex = getProgramIndex(path)
         if pIndex == nil {return}
         if !programs[pIndex!].legal {
             print("...Assembly was unsuccessful"); return
         }
-        passTwo(pathSpecs + name + ".txt")
+        passTwo(pathSpecs + name)
         print("...Assembly was successful")
     }
     
@@ -147,18 +148,21 @@ extension Assembler{
 // PASS TWO
 extension Assembler {
     // pass two makes translates assembly to binary
-    mutating func passTwo(_ path: String) {
-        if !programs[getProgramIndex(path)!].legal {return}
-        translate(path)
+    mutating func passTwo(_ pathNoTxt: String) {
+        if !programs[getProgramIndex(pathNoTxt + ".txt")!].legal {return}
+        translate(pathNoTxt + ".txt")
+        Support.writeTextFile(pathNoTxt + ".bin" + ".txt", makeBin(pathNoTxt + ".txt"))
+        Support.writeTextFile(pathNoTxt + ".lst" + ".txt", makeLst(pathNoTxt + ".txt"))
     }
     
-    func printBin(_ path: String) {
+    func makeBin(_ path: String)-> String {
         let pIndex = getProgramIndex(path)
-        if pIndex == nil {print("Please assemble the program first"); return}
-        print(programs[pIndex!].length)
-        print(programs[pIndex!].start)
-        for i in 0..<programs[pIndex!].mem.count {print("\(programs[pIndex!].mem[i])")}
-        print("\n\n\n")
+        if pIndex == nil {return "Please assemble the program first"}
+        var toReturn = "\(programs[pIndex!].length)"
+        toReturn += "\n\(programs[pIndex!].start)"
+        for i in 0..<programs[pIndex!].mem.count {toReturn += "\n\(programs[pIndex!].mem[i])"}
+        toReturn += "\n\n"
+        return toReturn
     }
     
     mutating func translate(_ path: String) {
@@ -188,11 +192,11 @@ extension Assembler {
     // \0 _ 0 _ r\
     mutating func translateTuple(_ token: Token)->[Int] {
         var binary = [Int]()
-        binary.append(token.tupleValue!.currentState) //should be cs
-        binary.append(Support.characterToUnicodeValue(token.tupleValue!.inputCharacter)) //should be ic
-        binary.append(token.tupleValue!.newState) //should be ns
-        binary.append(Support.characterToUnicodeValue(token.tupleValue!.outputCharacter)) //should be oc
-        binary.append(token.tupleValue!.direction) //should be di
+        binary.append(token.tupleValue!.currentState) //cs
+        binary.append(Support.characterToUnicodeValue(token.tupleValue!.inputCharacter))//ic
+        binary.append(token.tupleValue!.newState) //ns
+        binary.append(Support.characterToUnicodeValue(token.tupleValue!.outputCharacter)) //oc
+        binary.append(token.tupleValue!.direction) //di
         return binary
     }
     
@@ -249,16 +253,16 @@ extension Assembler {
         return "\(memContents)"
     }
     
-    func printLst(_ path: String) {
+    func makeLst(_ path: String)-> String {
         let pIndex = getProgramIndex(path)
-        if pIndex == nil {print("Please assemble the program first"); return}
-        var toPrint = ""
+        if pIndex == nil {return "Please assemble the program first"}
+        var toReturn = ""
         var memLocation = 0
         var memContents = " "
         for l in programs[pIndex!].lines {
             //must getMemContents before changing memLocation since memLocation when printed
             memContents = getMemContents(path, memLocation, l)
-            toPrint += Support.buffer("\(memLocation): \(memContents)", 23) + l.lineText + "\n"
+            toReturn += Support.buffer("\(memLocation): \(memContents)", 23) + l.lineText + "\n"
             for i in 0..<l.tokens.count {
                 switch l.tokens[i].type {
                 case .ImmediateString: memLocation += l.chunks[i].count - 1
@@ -272,7 +276,7 @@ extension Assembler {
                 }
             }
         }
-        print(toPrint)
+        return toReturn
     }
 }
 
