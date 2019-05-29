@@ -55,10 +55,10 @@ struct FullVM {
                     pathSpecs = splitInput[1]
                 case "printlst":
                     if numArgs(splitInput) != 1 {print(wrongNumArgsMessage("printlst", 1, numArgs(splitInput))); break}
-                    asmblr.printLst(pathSpecs + splitInput[1] + ".txt")
+                    print(asmblr.makeLst(pathSpecs + splitInput[1] + ".txt"))
                 case "printbin":
                     if numArgs(splitInput) != 1 {print(wrongNumArgsMessage("printbin", 1, numArgs(splitInput))); break}
-                    asmblr.printBin(pathSpecs + splitInput[1] + ".txt")
+                    print(asmblr.makeBin(pathSpecs + splitInput[1] + ".txt"))
                 case "printsym":
                     if numArgs(splitInput) != 1 {print(wrongNumArgsMessage("printsym", 1, numArgs(splitInput))); break}
                     asmblr.printSymVal(pathSpecs + splitInput[1] + ".txt")
